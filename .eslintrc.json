@@ -1,0 +1,21 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "indent": ["error", 2],
+    "quotes": ["error", "double"],
+    "semi": ["error", "always"],
+    "semi-style": ["error", "last"],
+    "semi-spacing": ["error", { "before": false, "after": true }],
+    "no-extra-semi": "error",
+    "no-unexpected-multiline": "error",
+    "no-unreachable": "error",
+    "no-multi-spaces": "error",
+    "no-trailing-spaces": "error",
+    "space-before-function-paren": ["error", "never"],
+    "space-in-parens": ["error", "never"],
+    "space-infix-ops": "error",
+    "space-unary-ops": ["error", { "words": true, "nonwords": false }],
+    "spaced-comment": ["error", "always", { "exceptions": ["-", "+"] }],
+    "eol-last": ["error", "always"]
+  }
+}
