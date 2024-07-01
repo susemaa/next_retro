@@ -8,9 +8,7 @@ import CreateRetroButton from "@/components/Retros/CreateRetroButton";
 const Retros: React.FC = () => {
   return (
     <main className="flex-grow flex flex-col p-8 h-full">
-      <h1
-        className="text-2xl font-bold mb-4 border-b pb-2"
-        style={{ borderBottomColor: "currentColor" }}>
+      <h1 className="text-2xl font-bold mb-4 border-b pb-2 inline-block border-current">
         My Retros
       </h1>
       <RetroLi

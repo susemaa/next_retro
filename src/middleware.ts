@@ -4,10 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 export default async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuth = !!token;
-  const isLoginPage = req.nextUrl.pathname === "/";
+  const isStartPage = req.nextUrl.pathname === "/";
+  const isLoginPage = req.nextUrl.pathname === "/login";
   const isRetro = req.nextUrl.pathname.startsWith("/retros/");
 
-  if (!isAuth && !isLoginPage) {
+  if (!isAuth && !isStartPage && !isLoginPage) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
@@ -18,15 +19,17 @@ export default async function middleware(req: NextRequest) {
     if (response.status === 404) {
       return NextResponse.redirect(new URL("/retros", req.url));
     } else {
+      // TODO socket message token.email joins retroID
+      // or connect socket for particular retro?
       return NextResponse.next();
     }
   }
 
-  if (isAuth && isLoginPage) {
+  if (isAuth && (isStartPage || isLoginPage)) {
     return NextResponse.redirect(new URL("/retros", req.url));
   }
 
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/retros", "/retros/:retro_id*"] };
+export const config = { matcher: ["/", "/retros", "/retros/:retro_id*", "/login", "/logout"] };
