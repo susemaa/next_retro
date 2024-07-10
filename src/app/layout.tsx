@@ -24,7 +24,7 @@ export default async function RootLayout({
       <body className={`${inter.className} min-h-screen flex flex-col`}>
         <SessionProviderWrapper session={session}>
           {/* TODO fetch / ws init retros */}
-          <RetroProvider initialRetros={[]}>
+          <RetroProvider initialRetros={{}}>
             <Navbar />
             {children}
           </RetroProvider>

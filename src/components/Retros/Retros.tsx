@@ -1,24 +1,34 @@
 import { memo } from "react";
 import RetroLi from "./RetroLi";
-import CreateRetroModal from "@/components/Retros/CreateRetroModal";
+import CreateRetroModal from "@/components/Modals/CreateRetroModal";
 import CreateRetroButton from "@/components/Retros/CreateRetroButton";
+import { Retro } from "@/contexts/RetroContext";
 
-// fetch retros here
+async function getRetros(): Promise<Record<string, Retro>> {
+  const res = await fetch(new URL("/api/retros", "http://localhost:3000"), {
+    method: "GET",
+    cache: "no-store"
+  });
+  return res.json();
+}
 
-const Retros: React.FC = () => {
+// todo make it client i guess
+// const Retros: React.FC = async () => {
+const Retros: React.FC = async () => {
+  const retros = await getRetros();
   return (
     <main className="flex-grow flex flex-col p-8 h-full">
       <h1 className="text-2xl font-bold mb-4 border-b pb-2 inline-block border-current">
         My Retros
       </h1>
-      <RetroLi
-        title="created 1 day ago"
-        items={[{ itemName: "Foo", owner: "John" }, { itemName: "Bar", owner: "Doe" }]}
-      />
-      <RetroLi
-        title="created 2 days ago"
-        items={[{ itemName: "Baz", owner: "Ryan" }, { itemName: "Foo", owner: "Gosling" }]}
-      />
+      {Object.entries(retros).map(([id, retro]) => (
+        <RetroLi
+          key={id}
+          id={id}
+          title={`created by ${retro.createdBy} at ${retro.createdAt}`}
+          items={[{ itemName: "Stage", owner: retro.stage }]}
+        />
+      ))}
       <CreateRetroButton/>
       <CreateRetroModal title="Select Format" />
     </main>

@@ -21,7 +21,10 @@ export default async function middleware(req: NextRequest) {
     } else {
       // TODO socket message token.email joins retroID
       // or connect socket for particular retro?
-      return NextResponse.next();
+      const retroData = await response.json();
+      const res = NextResponse.next();
+      // res.cookies.set("retroData", JSON.stringify(retroData), { httpOnly: true });
+      return res;
     }
   }
 

@@ -1,1 +1,1 @@
-export { createRetro as POST } from "./retrosApi";
+export { createRetro as POST, getRetros as GET } from "./retrosApi";

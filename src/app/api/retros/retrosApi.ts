@@ -1,30 +1,64 @@
-import { Retro } from "@/contexts/RetroContext";
+import { Retro, retroTypes } from "@/contexts/RetroContext";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-
-// TODO replace with real storage
-// Mock storage for retros
-const retros = new Map<string, Retro>();
-retros.set("123", {
-  createdAt: 1,
-  createdBy: "ryan@gosling.com",
-  
-});
+import { cookies } from "next/headers";
+import { get, getStore, set } from "@/../store";
 
 export async function createRetro(request: Request) {
   const { email } = await request.json();
   const generatedUuid = uuidv4();
-  retros.set(generatedUuid, { createdAt: Date.now(), createdBy: email });
-  console.log("created,", retros);
+  set(
+    generatedUuid,
+    {
+      createdAt: Date.now(),
+      createdBy: email,
+      stage: "lobby",
+      ideas: {
+        "happy": [],
+        "sad": [],
+        "confused": [],
+      }
+    });
+  console.log("created,", getStore());
   return NextResponse.json({ id: generatedUuid });
 }
 
 export async function getRetro(request: Request) {
   const retroId = request.url.split("/retros/")[1];
 
-  if (retros.has(retroId)) {
-    return NextResponse.json(retros.get(retroId), { status: 200 });
+  const retro = get(retroId);
+  if (retro) {
+    return NextResponse.json(retro, { status: 200 });
   } else {
     return NextResponse.json({ error: "Retro not found" }, { status: 404 });
   }
+}
+
+export async function getRetros(_request: Request) {
+  const storage = getStore();
+  return NextResponse.json(storage.retros);
+}
+
+export async function changeRetroState(request: Request) {
+  const retroId = request.url.split("/retros/")[1];
+  const { stage } = await request.json();
+  // TODO check if stage is allowed
+
+  const retro = get(retroId);
+  if (retro) {
+    retro.stage = stage;
+    set(retroId, retro);
+    return NextResponse.json(retro, { status: 200 });
+  } else {
+    return NextResponse.json({ error: "Retro not found" }, { status: 404 });
+  }
+}
+
+export function getRetroDataFromCookies(): Retro | null {
+  const cookieStore = cookies();
+  const retroData = cookieStore.get("retroData");
+  if (retroData) {
+    return JSON.parse(retroData.value) as Retro;
+  }
+  return null;
 }

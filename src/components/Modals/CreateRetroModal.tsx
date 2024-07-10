@@ -3,7 +3,10 @@ import { memo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import Card from "./Card";
+import Card from "../Retros/Card";
+import { useRetroContext } from "@/contexts/RetroContext";
+import { toastDurationMS } from "../../../tailwind.config";
+import { getErrorNotification } from "@/helpers";
 
 interface ModalProps {
   title: string;
@@ -12,6 +15,7 @@ interface ModalProps {
 const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
   const [loading, setLoading] = useState<string | null>(null);
   const { data } = useSession();
+  const { updStorage } = useRetroContext();
   const router = useRouter();
 
   const handleClick = () => {
@@ -26,10 +30,16 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
       .then((res) => res.json())
       .then((data) => {
         setLoading(data.id);
+        updStorage();
         router.push(`/retros/${data.id}`);
       })
       .catch((err) => {
         console.error("Failed to fetch /api/retros", err);
+        const toast = getErrorNotification("Couldn't create retro, try again later");
+        document.getElementById("create_retro_modal")?.appendChild(toast);
+        setTimeout(() => {
+          document.getElementById("create_retro_modal")?.removeChild(toast);
+        }, toastDurationMS);
         setLoading(null);
       });
   };

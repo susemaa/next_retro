@@ -3,7 +3,7 @@ import { memo, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { toastDurationMS } from "@/../tailwind.config";
-import { getSuccessfulNotification } from "@/helpers";
+import { getSuccessfulNotification, notify } from "@/helpers";
 
 interface ModalProps {
 }
@@ -18,11 +18,7 @@ const ShareLinkModal: React.FC<ModalProps> = () => {
 
   const handleCopy = () => {
     navigator.clipboard.writeText(currentLink).then(() => {
-      const toast = getSuccessfulNotification("Link copied ✓");
-      document.getElementById("share_link_modal")?.appendChild(toast);
-      setTimeout(() => {
-        document.getElementById("share_link_modal")?.removeChild(toast);
-      }, toastDurationMS);
+      notify("successful", "Link copied ✓", document.getElementById("share_link_modal"));
     });
   };
 

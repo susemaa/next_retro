@@ -1,53 +1,217 @@
 "use client";
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-// import { socket } from "@/socket";
-import Retro from "@/components/Retros/Retro";
+import { createContext, useContext, useState, ReactNode, useEffect, SetStateAction, Dispatch } from "react";
+import { getSocket } from "@/socket";
+import { useSession } from "next-auth/react";
+
+export const retroTypes = ["lobby", "prime_directive", "idea_generation", "grouping"] as const;
+export type RetroTypes = typeof retroTypes[number];
+
+export interface Idea {
+  idea: string;
+  id: string;
+  position: {
+    x: number;
+    y: number;
+    z: number;
+  }
+}
+
+export const ideaTypes = ["happy", "sad", "confused"] as const;
+export type IdeaType = (typeof ideaTypes)[number];
+export type Ideas = { [key in IdeaType]: Idea[] };
 
 export interface Retro {
   createdAt: number;
   createdBy: string;
+  stage: RetroTypes;
+  ideas: Ideas;
 }
 
+export interface Store {
+  retros: Record<string, Retro>;
+}
+
+export type UserData = {
+  email?: string | null;
+  name?: string | null;
+  image?: string | null;
+};
+
+export type errResponse = { status: 404, error: string };
+
+export type CreateRetroCallback = (
+  data: { status: 200, id: string, retro: Retro } | errResponse
+) => void;
+
+export type GetRetroCallback = (
+  data: { status: 200, retro: Retro } | errResponse
+) => void;
+
+export type ChangeRetroStateCallback = (
+  data: { status: 200, retro: Retro} | errResponse
+) => void;
+
+export type InitPositionsCallback = (
+  data: { status: 200 } | errResponse
+) => void;
+
 interface RetroContextType {
-  retros: Retro[];
-  setRetros: React.Dispatch<React.SetStateAction<Retro[]>>;
+  isLoading: boolean;
+  retros: Record<string, Retro>;
+  users?: Record<string, Record<string, UserData>>;
+  updStorage: () => void;
+  sendUserData: (retroId: string, userData: UserData) => void;
+  sendIdea: (retroId: string, type: IdeaType, message: string) => void;
+  removeIdea: (retroId: string, ideaId: string, type: IdeaType) => void;
+  updateIdea: (retroId: string, ideaId: string, newType: IdeaType, newIdea: string) => void;
+  initPositions: (retroId: string, ideas: Ideas, callback: InitPositionsCallback) => void;
+  updatePosition: (retroId: string, ideaId: string, newPosition: { x: number; y : number }) => void;
+  createRetro: (
+    email: string,
+    callback: CreateRetroCallback,
+  ) => void;
+  getRetro: (
+    retroId: string,
+    callback: GetRetroCallback,
+  ) => void;
+  changeRetroState: (
+    retroId: string,
+    stage: RetroTypes,
+    callback: ChangeRetroStateCallback,
+  ) => void;
 }
 
 const RetroContext = createContext<RetroContextType | undefined>(undefined);
 
-export const RetroProvider = ({ children, initialRetros }: { children: ReactNode, initialRetros: Retro[] }) => {
-  // const [isConnected, setIsConnected] = useState(socket.connected);
-  const [retros, setRetros] = useState<Retro[]>(initialRetros);
+export const RetroProvider = ({
+  children,
+  initialRetros
+}: {
+  children: ReactNode,
+  initialRetros: Record<string, Retro>
+}) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [retros, setRetros] = useState<Record<string, Retro>>(initialRetros);
+  const [users, setUsers] = useState<Record<string, Record<string, UserData>>>();
 
-  // useEffect(() => {
-  //   function onConnect() {
-  //     setIsConnected(true);
-  //   }
+  useEffect(() => {
+    const socket = getSocket();
+    function onConnect() {
+      console.log("ON CONNECT");
+    }
 
-  //   function onDisconnect() {
-  //     setIsConnected(false);
-  //   }
+    function onDisconnect() {
+      setIsLoading(true);
+    }
 
-  //   function onRetrosEvent(value) {
-  //     console.log(value);
-  //     if (value instanceof Retro) {
-  //       setRetros(r => [...r, value as Retro]);
-  //     }
-  //   }
+    function onRetroCreated(newRetro: Retro) {
+      console.log("on retro created");
+      // setRetros((prevRetros) => ({ ...prevRetros, [newRetro.id]: newRetro }));
+    }
 
-  //   socket.on("connect", onConnect);
-  //   socket.on("disconnect", onDisconnect);
-  //   socket.on("retrso", onRetrosEvent);
+    function onRetroUpdated(updatedRetro: Retro, retroId: string) {
+      setRetros((prevRetros) => ({
+        ...prevRetros,
+        [retroId]: updatedRetro
+      }));
+    }
 
-  //   return () => {
-  //     socket.off("connect", onConnect);
-  //     socket.off("disconnect", onDisconnect);
-  //     socket.off("retros", onRetrosEvent);
-  //   };
-  // }, []);
+    function onStorage(store: Store) {
+      console.log("GOT STORE", store);
+      setRetros(store.retros);
+      setIsLoading(false);
+    }
+
+    function onUsers(retroId: string, usersData: Record<string, UserData>) {
+      setUsers((prevUsers) => {
+        const newUsers = { ...prevUsers };
+        console.log("userdata", usersData);
+        newUsers[retroId] = usersData;
+        console.log("SETTED USERS", newUsers);
+        console.log(Object.entries(newUsers));
+        return newUsers;
+      });
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("retroCreated", onRetroCreated);
+    socket.on("retroUpdated", onRetroUpdated);
+    socket.on("storage", onStorage);
+    socket.on("users", onUsers);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("retroCreated", onRetroCreated);
+      socket.off("retroUpdated", onRetroUpdated);
+      socket.off("storage", onStorage);
+      socket.off("users", onUsers);
+    };
+  }, []);
+
+  const socket = getSocket();
+
+  const createRetro = (email: string, callback: CreateRetroCallback) => {
+    socket.emit("createRetro", email, callback);
+  };
+
+  const getRetro = (retroId: string, callback: GetRetroCallback) => {
+    socket.emit("getRetro", retroId, callback);
+  };
+
+  const sendIdea = (retroId: string, type: IdeaType, message: string) => {
+    socket.emit("idea", retroId, type, message);
+  };
+
+  const removeIdea = (retroId: string, ideaId: string, type: IdeaType) => {
+    socket.emit("removeIdea", retroId, ideaId, type);
+  };
+
+  const updateIdea = (retroId: string, ideaId: string, newType: IdeaType, newIdea: string) => {
+    socket.emit("updateIdea", retroId, ideaId, newType, newIdea);
+  };
+
+  const initPositions = (retroId: string, ideas: Ideas, callback: InitPositionsCallback) => {
+    socket.emit("initPositions", retroId, ideas, callback);
+  };
+
+  const updatePosition = (retroId: string, ideaId: string, newPosition: { x: number; y : number }) => {
+    socket.emit("updatePosition", retroId, ideaId, newPosition);
+  };
+
+  const sendUserData = (retroId: string, userData: UserData) => {
+    socket.emit("user", retroId, userData);
+  };
+
+  const updStorage = () => {
+    socket.emit("upd");
+  };
+
+  const changeRetroState = (
+    retroId: string,
+    stage: RetroTypes,
+    callback: ChangeRetroStateCallback
+  ) => {
+    socket.emit("changeRetroState", retroId, stage, callback);
+  };
 
   return (
-    <RetroContext.Provider value={{ retros, setRetros }}>
+    <RetroContext.Provider value={{
+      isLoading,
+      retros,
+      users,
+      updStorage,
+      sendUserData,
+      createRetro,
+      getRetro,
+      changeRetroState,
+      sendIdea,
+      removeIdea,
+      updateIdea,
+      initPositions,
+      updatePosition,
+    }}>
       {children}
     </RetroContext.Provider>
   );

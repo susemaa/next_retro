@@ -5,16 +5,17 @@ import { memo, useState } from "react";
 interface RetroProps {
   title: string;
   items: { itemName: string; owner: string }[];
+  id: string;
 }
 
-const RetroLi: React.FC<RetroProps> = ({ title, items }) => {
+const RetroLi: React.FC<RetroProps> = ({ title, items, id }) => {
   const [opened, setOpened] = useState(false);
   const toggleOpen = () => {
     setOpened(!opened);
   };
   return (
-    <li>
-      <Link href="#" className="text-blue-500">{title}</Link>
+    (<li>
+      <Link href={`/retros/${id}`} className="text-blue-500">{title}</Link>
       <div className="ml-4 collapse w-1/2">
         <input className="w-1/2 max-h-1/2" type="checkbox" onClick={toggleOpen} />
         <div className="collapse-title text-sm font-medium">
@@ -30,7 +31,7 @@ const RetroLi: React.FC<RetroProps> = ({ title, items }) => {
           </ul>
         </div>
       </div>
-    </li>
+    </li>)
   );
 };
 
