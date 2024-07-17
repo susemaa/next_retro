@@ -12,7 +12,7 @@ interface DraggableProps {
   onMouseDown: (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   onMouseUp: (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   onMouseMove: (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
-  shouldHighlight: boolean;
+  groupNumber: number;
   isDragging: boolean;
 }
 
@@ -27,14 +27,15 @@ const Draggable: React.FC<DraggableProps> = ({
   onMouseUp,
   onMouseMove,
   scale,
-  shouldHighlight,
+  groupNumber,
   isDragging,
 }) => {
+  const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
 
   return (
     <span
       id={ideaId}
-      className={`border absolute select-none whitespace-nowrap max-w-xs ${shouldHighlight && "border-red-700"}`}
+      className="border absolute select-none p-2 whitespace-nowrap rounded-md max-w-xs"
       style={{
         left: `${left * scale.x}px`,
         top: `${top * scale.y}px`,
@@ -42,6 +43,7 @@ const Draggable: React.FC<DraggableProps> = ({
         transformOrigin: "top left",
         transform: `scale(${scale.x}, ${scale.y})`,
         pointerEvents: isDragging ? "none" : "auto",
+        borderColor: `${groupNumber === -1 ? "white" : colors[groupNumber % colors.length]}`
       }}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}

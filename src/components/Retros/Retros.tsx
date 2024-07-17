@@ -1,8 +1,10 @@
+"use client";
 import { memo } from "react";
 import RetroLi from "./RetroLi";
 import CreateRetroModal from "@/components/Modals/CreateRetroModal";
 import CreateRetroButton from "@/components/Retros/CreateRetroButton";
-import { Retro } from "@/contexts/RetroContext";
+import { Retro, useRetroContext } from "@/contexts/RetroContext";
+import { useSession } from "next-auth/react";
 
 async function getRetros(): Promise<Record<string, Retro>> {
   const res = await fetch(new URL("/api/retros", "http://localhost:3000"), {
@@ -12,10 +14,10 @@ async function getRetros(): Promise<Record<string, Retro>> {
   return res.json();
 }
 
-// todo make it client i guess
 // const Retros: React.FC = async () => {
-const Retros: React.FC = async () => {
-  const retros = await getRetros();
+const Retros: React.FC = () => {
+  // const retros = await getRetros();
+  const { retros } = useRetroContext();
   return (
     <main className="flex-grow flex flex-col p-8 h-full">
       <h1 className="text-2xl font-bold mb-4 border-b pb-2 inline-block border-current">

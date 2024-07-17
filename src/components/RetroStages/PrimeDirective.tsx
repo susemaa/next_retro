@@ -18,11 +18,11 @@ interface PrimeDirective {
 const PrimeDirective: React.FC<PrimeDirective> = ({ id, createdBy }) => {
   const [loading, setLoading] = useState(false);
   const isAuthor = useAuthor(createdBy);
-  const { users, changeRetroState } = useRetroContext();
+  const { users, changeRetroStage } = useRetroContext();
 
   const handleConfirm = () => {
     setLoading(true);
-    changeRetroState(id, "idea_generation", (res) => {
+    changeRetroStage(id, "idea_generation", (res) => {
       if (res.status !== 200) {
         console.error("Couldnt update retro stage");
         setLoading(false);

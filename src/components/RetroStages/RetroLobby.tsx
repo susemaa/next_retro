@@ -18,7 +18,7 @@ interface RetroLobby {
 const RetroLobby: React.FC<RetroLobby> = ({ id, createdBy }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { changeRetroState, users } = useRetroContext();
+  const { changeRetroStage, users } = useRetroContext();
   const isAuthor = useAuthor(createdBy);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ const RetroLobby: React.FC<RetroLobby> = ({ id, createdBy }) => {
 
   const handleConfirm = () => {
     setLoading(true);
-    changeRetroState(id, "prime_directive", (res) => {
+    changeRetroStage(id, "prime_directive", (res) => {
       if (res.status !== 200) {
         console.error("Couldnt update retro stage");
         setLoading(false);

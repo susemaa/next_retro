@@ -1,5 +1,6 @@
 {
   "extends": "next/core-web-vitals",
+  "plugins": ["react-hooks"],
   "rules": {
     "indent": ["error", 2],
     "quotes": ["error", "double"],
@@ -16,6 +17,12 @@
     "space-infix-ops": "error",
     "space-unary-ops": ["error", { "words": true, "nonwords": false }],
     "spaced-comment": ["error", "always", { "exceptions": ["-", "+"] }],
-    "eol-last": ["warn", "always"]
+    "eol-last": ["warn", "always"],
+    "react-hooks/rules-of-hooks": ["error", {
+      "additionalHooks": "(useSocketValue)"
+    }],
+    "react-hooks/exhaustive-deps": ["error", {
+      "additionalHooks": "(useSocketValue)"
+    }]
   }
 }

@@ -3,7 +3,7 @@ import next from "next";
 import { Server } from "socket.io";
 import { v4 as uuidv4 } from "uuid";
 import { get, getStore, set } from "./store";
-import type { CreateRetroCallback, GetRetroCallback, ChangeRetroStateCallback, RetroTypes, Idea, Ideas, InitPositionsCallback } from "@/contexts/RetroContext";
+import type { CreateRetroCallback, GetRetroCallback, ChangeRetroStateCallback, RetroStages, Idea, Ideas, InitPositionsCallback, Groups, InitGroupsCallback, User } from "@/contexts/RetroContext";
 import type { Socket } from "socket.io";
 import type { Retro, UserData } from "@/contexts/RetroContext";
 import { IdeaType } from "@/contexts/RetroContext";
@@ -24,7 +24,7 @@ app.prepare().then(() => {
   io.on("connection", (socket: Socket) => {
     socket.on("createRetro", (email: string, callback: CreateRetroCallback) => {
       const generatedUuid = uuidv4();
-      const newRetro = {
+      const newRetro: Retro = {
         createdAt: Date.now(),
         createdBy: email,
         stage: "lobby" as const,
@@ -33,8 +33,10 @@ app.prepare().then(() => {
           "sad": [],
           "confused": [],
         },
+        groups: {},
+        everJoined: [],
+        actionItems: [],
       };
-      // TODO save to storage
       set(generatedUuid, newRetro);
       console.log("setted socket", getStore());
       callback({ status: 200, id: generatedUuid, retro: newRetro });
@@ -42,7 +44,6 @@ app.prepare().then(() => {
     });
 
     socket.on("getRetro", (retroId: string, callback: GetRetroCallback) => {
-      // TODO replace with storage fetch
       const retro = get(retroId);
       if (retro) {
         callback({ status: 200, retro });
@@ -51,12 +52,20 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("changeRetroState", (retroId: string, stage: RetroTypes, callback: ChangeRetroStateCallback) => {
-    // const retro = retros.get(retroId);
+    socket.on("changeRetroStage", (retroId: string, stage: RetroStages, callback: ChangeRetroStateCallback) => {
       const retro = get(retroId);
       if (retro) {
         retro.stage = stage;
-        // retros.set(retroId, retro);
+        if (stage === "finished") {
+          // fetch(new URL("/api/mailer", "http://localhost:3000"), {
+          //   method: "POST",
+          //   body: {
+          //     to: retro.everJoined.map(user => user.email),
+          //     subject: "Action items from Retro",
+          //     text: retro.actionItems.map(item => `${item.name} (${item.assignedUser.name})`).join("\n"),
+          //   },
+          // });
+        }
         set(retroId, retro);
         callback({ status: 200, retro });
         socket.emit("retroUpdated", retro, retroId);
@@ -122,8 +131,8 @@ app.prepare().then(() => {
         retro.ideas = ideas;
         cb({ status: 200 });
         set(retroId, retro);
-        socket.emit("retroUpdated", retro, retroId);
-        socket.broadcast.emit("retroUpdated", retro, retroId);
+        // socket.emit("retroUpdated", retro, retroId);
+        // socket.broadcast.emit("retroUpdated", retro, retroId);
       } else {
         cb({ status: 404, error: `Retro with ${retroId} not found`});
       }
@@ -149,12 +158,119 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on("initGroups", (retroId: string, groups: Groups, cb: InitGroupsCallback) => {
+      const retro = get(retroId);
+      if (retro) {
+        retro.groups = groups;
+        cb({ status: 200 });
+        set(retroId, retro);
+        // socket.emit("retroUpdated", retro, retroId);
+        // socket.broadcast.emit("retroUpdated", retro, retroId);
+      } else {
+        cb({ status: 404, error: `Retro with ${retroId} not found`});
+      }
+    });
+
+    socket.on("updateGroupName", (retroId: string, groupId:string, newName: string) => {
+      const retro = get(retroId);
+      if (retro) {
+        const group = retro.groups[groupId];
+        if (group) {
+          group.name = newName;
+          retro.groups = { ...retro.groups, [groupId]: group };
+          set(retroId, retro);
+          socket.emit("retroUpdated", retro, retroId);
+          socket.broadcast.emit("retroUpdated", retro, retroId);
+        }
+      }
+    });
+
+    socket.on("voteAdd", (retroId: string, groupId: string, email: string) => {
+      const retro = get(retroId);
+      if (retro) {
+        const user = retro.everJoined.find(user => user.email === email);
+        if (user && user.votes > 0) {
+          user.votes -= 1;
+          retro.groups[groupId].votes.push(email);
+          set(retroId, retro);
+          socket.emit("retroUpdated", retro, retroId);
+          socket.broadcast.emit("retroUpdated", retro, retroId);
+        }
+      }
+    });
+
+    socket.on("voteSubstract", (retroId: string, groupId: string, email: string) => {
+      const retro = get(retroId);
+      if (retro) {
+        const user = retro.everJoined.find(user => user.email === email);
+        const groupVotes = retro.groups[groupId].votes;
+        const emailIndex = groupVotes.indexOf(email);
+        if (user && emailIndex !== -1) {
+          user.votes += 1;
+          groupVotes.splice(emailIndex, 1);
+          set(retroId, retro);
+          socket.emit("retroUpdated", retro, retroId);
+          socket.broadcast.emit("retroUpdated", retro, retroId);
+        }
+      }
+    });
+
+    socket.on("sendActionItem", (retroId: string, author: User, assignee: User, item: string) => {
+      const retro = get(retroId);
+      if (retro) {
+        retro.actionItems.push({ id: uuidv4(), assignedUser: assignee, name: item, author });
+        set(retroId, retro);
+        socket.emit("retroUpdated", retro, retroId);
+        socket.broadcast.emit("retroUpdated", retro, retroId);
+      }
+    });
+
+    socket.on("removeActionItem", (retroId: string, actionItemId: string) => {
+      const retro = get(retroId);
+      if (retro) {
+        const actionItemIndex = retro.actionItems.findIndex(item => item.id === actionItemId);
+        if (actionItemIndex !== -1) {
+          retro.actionItems.splice(actionItemIndex, 1);
+          set(retroId, retro);
+          socket.emit("retroUpdated", retro, retroId);
+          socket.broadcast.emit("retroUpdated", retro, retroId);
+        }
+      }
+    });
+
+    socket.on("updateActionItem", (retroId: string, actionItemId: string, newAssignee: User, newName: string) => {
+      const retro = get(retroId);
+      if (retro) {
+        const actionItem = retro.actionItems.find(item => item.id === actionItemId);
+        if (actionItem) {
+          actionItem.assignedUser = newAssignee;
+          actionItem.name = newName;
+          set(retroId, retro);
+          socket.emit("retroUpdated", retro, retroId);
+          socket.broadcast.emit("retroUpdated", retro, retroId);
+        }
+      }
+    });
+
     socket.on("upd", () => {
       socket.emit("storage", getStore());
     });
 
     socket.on("user", (retroId: string, userData?: UserData) => {
-      if (userData) {
+      const retro = get(retroId);
+      if (
+        userData &&
+        userData.email &&
+        userData.name &&
+        retro
+      ) {
+        if (!retro.everJoined.find(user => user.email === userData.email)) {
+          retro.everJoined.push({ email: userData.email, votes: 3, name: userData.name });
+          set(retroId, retro);
+          socket.emit("retroUpdated", retro, retroId);
+          socket.broadcast.emit("retroUpdated", retro, retroId);
+        }
+
         // Check if the socket id is already associated with another retroId
         for (const existingRetroId in users) {
           if (users[existingRetroId] && users[existingRetroId][socket.id]) {

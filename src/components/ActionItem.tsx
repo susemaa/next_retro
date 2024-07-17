@@ -1,26 +1,25 @@
 "use client";
-import { memo, useState, useRef, useEffect, useCallback } from "react";
-import { useRetroContext, IdeaType } from "@/contexts/RetroContext";
+import { memo, useState, useRef, useEffect } from "react";
+import { useRetroContext, ActionItem as ActionItemInterface } from "@/contexts/RetroContext";
 import useSocketValue from "@/hooks/useSocketValue";
 
-interface IdeaProps {
-  type: IdeaType;
-  idea: string;
+interface ActionItemProps {
+  actionItem: ActionItemInterface;
   id: string;
   retroId: string;
-  onDragStart: React.DragEventHandler<HTMLDivElement>;
+  finished?: boolean;
 }
 
-const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => {
-  const { removeIdea, updateIdea, retros } = useRetroContext();
-  const [currentIdea, setCurrentIdea] = useSocketValue(() => {
-    return retros[retroId].ideas[type].find((idea) => idea.id === id)?.idea;
-  }, [retros, retroId, id, type]);
+const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finished }) => {
+  const { removeActionItem, updateActionItem, retros } = useRetroContext();
+  const [currentItem, setCurrentItem] = useSocketValue(() => {
+    return retros[retroId].actionItems.find(item => item.id === id) as ActionItemInterface;
+  }, [retros, retroId, id]);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleRemove = () => {
-    removeIdea(retroId, id, type);
+    removeActionItem(retroId, id);
   };
 
   const handleEdit = () => {
@@ -29,12 +28,12 @@ const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => 
 
   const handleCancel = () => {
     setEditing(false);
-    setCurrentIdea(idea);
+    setCurrentItem(actionItem);
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    updateIdea(retroId, id, type, currentIdea || "");
+    updateActionItem(retroId, id, retros[retroId].actionItems.find(item => item.id === id)!.assignedUser, currentItem.name);
     setEditing(false);
   };
 
@@ -47,23 +46,21 @@ const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => 
 
   return (
     <div
-      className="flex justify-between items-center border-b pb-1 border-b border-current mb-4 cursor-move"
-      draggable
-      onDragStart={onDragStart}
+      className="flex justify-between items-center border-b pb-1 border-b border-current mb-4"
     >
       {editing ? (
         <form id={`edit-form-${id}`} onSubmit={handleSubmit} className="flex-grow">
           <input
             ref={inputRef}
-            value={currentIdea}
-            onChange={(e) => setCurrentIdea(e.target.value)}
+            value={currentItem.name}
+            onChange={(e) => setCurrentItem(prev => ({ ...prev, name: e.target.value }))}
             className="border-none outline-none bg-transparent w-full"
           />
         </form>
       ) : (
-        <span className="whitespace-nowrap overflow-x-auto">{currentIdea}</span>
+        <span className="whitespace-nowrap overflow-x-auto">{currentItem.name} ({currentItem.assignedUser.name})</span>
       )}
-      <div className="flex space-x-2">
+      {!finished && <div className="flex space-x-2">
         {editing
           ?
           <>
@@ -72,14 +69,14 @@ const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => 
           </>
           :
           <>
-            {currentIdea !== idea && <span className="loading loading-spinner loading-xs"></span>}
+            {currentItem !== actionItem && <span className="loading loading-spinner loading-xs"></span>}
             <button className="btn btn-xs btn-outline btn-circle" onClick={handleEdit}>✏️</button>
             <button className="btn btn-xs btn-outline btn-circle" onClick={handleRemove}>x</button>
           </>
         }
-      </div>
+      </div>}
     </div>
   );
 };
 
-export default memo(Idea);
+export default memo(ActionItem);

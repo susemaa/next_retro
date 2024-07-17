@@ -1,4 +1,5 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
+import EmailProvider from "next-auth/providers/email";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
@@ -7,6 +8,7 @@ import { Session } from "next-auth";
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
+    refreshToken?: string;
   }
 }
 
@@ -25,11 +27,13 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account }: { token: JWT; account?: any }) {
       if (account) {
         token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
       }
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       session.accessToken = token.accessToken as string;
+      session.refreshToken = token.refreshToken as string;
       return session;
     },
   },

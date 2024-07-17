@@ -2,16 +2,15 @@
 import React, { useEffect, memo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import CurrentUsers from "../Retros/CurrentUsers";
 import { Ideas, useRetroContext } from "@/contexts/RetroContext";
 import ConfirmModal from "../Retros/ConfirmModal";
 import { notify, openModal } from "@/helpers";
 import WelcomeModal from "../Modals/WelcomeModal";
-import Link from "next/link";
 import useAuthor from "@/hooks/useAuthor";
 import IdeaComponent from "@/components/Idea";
 import { Idea as IdeaInterface } from "@/contexts/RetroContext";
 import { ideaTypes, IdeaType } from "@/contexts/RetroContext";
+import FooterWInput from "../FooterWInput";
 
 interface IdeaGeneration {
   id: string;
@@ -23,7 +22,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
   const router = useRouter();
   const isAuthor = useAuthor(createdBy);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { sendIdea, updateIdea, initPositions: socketInitPosistions, changeRetroState, retros } = useRetroContext();
+  const { sendIdea, updateIdea, initPositions: socketInitPosistions, changeRetroStage, retros } = useRetroContext();
   const [type, setType] = useState<IdeaType>("happy");
   const [draggingIdea, setDraggingIdea] = useState<IdeaInterface | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,6 +34,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
       span.style.visibility = "hidden";
       span.style.position = "absolute";
       span.textContent = idea.idea;
+      span.classList.add("p-2", "whitespace-nowrap", "max-w-xs");
       document.body.appendChild(span);
       const { width, height } = span.getBoundingClientRect();
       document.body.removeChild(span);
@@ -86,7 +86,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
   const handleConfirm = () => {
     setLoading(true);
     initPositions(retros[id].ideas, () => {
-      changeRetroState(id, "grouping", (res) => {
+      changeRetroStage(id, "grouping", (res) => {
         if (res.status !== 200) {
           setLoading(false);
           notify("error", "Couldnt update retro stage", document.getElementById("confirm_modal"));
@@ -122,73 +122,65 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
     }
   };
 
+  const handleSetType = (type: IdeaType) => {
+    setType(type);
+    if (inputRef.current) {
+      inputRef.current.select();
+      inputRef.current.focus();
+    }
+  };
+
+  const handleClick = (ideaType: IdeaType) => () => {
+    handleSetType(ideaType);
+  };
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    handleSetType(e.target.value as IdeaType);
+  };
+
   return (
-    <main className="flex-grow flex flex-col px-8 h-full">
-      <div className="flex flex-grow">
-        {ideaTypes.map((ideaType) => (
-          <div
-            key={ideaType}
-            className="w-1/3 p-4"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop(ideaType)}
-          >
-            <button
-              className="text-center text-xl font-bold mb-4 border-b pb-1 border-b-2 border-current w-full"
-              onClick={() => {
-                setType(ideaType);
-                if (inputRef.current) {
-                  inputRef.current.select();
-                  inputRef.current.focus();
-                }
-              }}
+    <>
+      <main className="flex-grow flex flex-col px-8 h-full overflow-y-auto">
+        <div className="flex flex-grow">
+          {ideaTypes.map((ideaType) => (
+            <div
+              key={ideaType}
+              className="w-1/3 p-4"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop(ideaType)}
             >
-              {ideaType === "happy" ? "😊 Happy" : ideaType === "sad" ? "😢 Sad" : "😕 Confused"}
-            </button>
-            {retros[id] && retros[id].ideas[ideaType].map(({ idea, id: ideaId, position }) => (
-              <IdeaComponent
-                idea={idea}
-                key={`${ideaType}_${ideaId}`}
-                id={ideaId}
-                type={ideaType}
-                retroId={id}
-                onDragStart={handleDragStart({ id: ideaId, idea, position })}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="flex py-4 justify-between">
-        <select
-          className="select select-bordered w-1/4 flex-grow"
-          value={type}
-          onChange={(e) => setType(e.target.value as IdeaType)}
-        >
-          <option value="happy">Happy</option>
-          <option value="sad">Sad</option>
-          <option value="confused">Confused</option>
-        </select>
-        <form className="flex w-full" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            ref={inputRef}
-            className="input input-bordered w-1/2 mx-4 flex-grow"
-            placeholder="Enter your message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          <button
-            type="submit"
-            className="btn btn-primary w-1/8 mr-4 flex-grow"
-            disabled={message.length === 0}
-          >
-            Submit
-          </button>
-        </form>
-        <button className="btn btn-primary w-1/8 flex-grow" disabled={!isAuthor} onClick={() => openModal("confirm_modal") }>
-          Grouping
-        </button>
-      </div>
+              <button
+                className="text-center text-xl font-bold mb-4 border-b pb-1 border-b-2 border-current w-full"
+                onClick={handleClick(ideaType)}
+              >
+                {ideaType === "happy" ? "😊 Happy" : ideaType === "sad" ? "😢 Sad" : "😕 Confused"}
+              </button>
+              {retros[id] && retros[id].ideas[ideaType].map((iterIdea) => (
+                <IdeaComponent
+                  idea={iterIdea.idea}
+                  key={`${ideaType}_${iterIdea.id}`}
+                  id={iterIdea.id}
+                  type={ideaType}
+                  retroId={id}
+                  onDragStart={handleDragStart(iterIdea)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </main>
+      <FooterWInput
+        options={ideaTypes as unknown as string[]}
+        selectedOption={type}
+        handleSubmit={handleSubmit}
+        onSelectChange={handleSelectChange}
+        buttonTag="Grouping"
+        isAuthor={isAuthor}
+        message={message}
+        setMessage={setMessage}
+        ref={inputRef}
+      />
       <ConfirmModal
         message="Are you sure you would like to proceed to the idea grouping stage?"
         loading={loading}
@@ -207,7 +199,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
           </>
         }
       />
-    </main>
+    </>
   );
 };
 

@@ -12,7 +12,7 @@ const UserCard: React.FC<UserCardProps> = ({ imageSrc, name, role }) => {
 
   return (
     <div className="grid">
-      <div className="card bg-base-100 shadow-xl">
+      <div className="card bg-base-100 shadow-2xl">
         <div className="card-body pl-0">
           <div className="flex items-center space-x-4">
             <div className="avatar">

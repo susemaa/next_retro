@@ -1,4 +1,4 @@
-import { Retro, retroTypes } from "@/contexts/RetroContext";
+import { Retro, retroStages } from "@/contexts/RetroContext";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { cookies } from "next/headers";
@@ -12,12 +12,15 @@ export async function createRetro(request: Request) {
     {
       createdAt: Date.now(),
       createdBy: email,
-      stage: "lobby",
+      stage: "lobby" as const,
       ideas: {
         "happy": [],
         "sad": [],
         "confused": [],
-      }
+      },
+      groups: {},
+      everJoined: [],
+      actionItems: [],
     });
   console.log("created,", getStore());
   return NextResponse.json({ id: generatedUuid });
@@ -39,7 +42,7 @@ export async function getRetros(_request: Request) {
   return NextResponse.json(storage.retros);
 }
 
-export async function changeRetroState(request: Request) {
+export async function changeRetroStage(request: Request) {
   const retroId = request.url.split("/retros/")[1];
   const { stage } = await request.json();
   // TODO check if stage is allowed

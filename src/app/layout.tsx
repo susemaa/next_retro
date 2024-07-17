@@ -21,7 +21,7 @@ export default async function RootLayout({
   const session = await getSession();
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen flex flex-col`}>
+      <body className={`${inter.className} flex flex-col h-screen`}>
         <SessionProviderWrapper session={session}>
           {/* TODO fetch / ws init retros */}
           <RetroProvider initialRetros={{}}>
