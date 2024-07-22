@@ -1,13 +1,10 @@
 "use client";
-import React, { useEffect, memo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import React, { memo, useState } from "react";
+import Link from "next/link";
+import { notify, openModal } from "@/helpers";
 import CurrentUsers from "../Retros/CurrentUsers";
 import { useRetroContext } from "@/contexts/RetroContext";
-import ConfirmModal from "../Retros/ConfirmModal";
-import { notify, openModal } from "@/helpers";
-import WelcomeModal from "../Modals/WelcomeModal";
-import Link from "next/link";
+import { ConfirmModal, WelcomeModal } from "@/components/Modals";
 import useAuthor from "@/hooks/useAuthor";
 
 interface PrimeDirective {

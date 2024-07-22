@@ -1,20 +1,11 @@
 "use client";
-import React, { useEffect, memo, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import CurrentUsers from "../Retros/CurrentUsers";
+import React, { memo, useState } from "react";
 import { useRetroContext } from "@/contexts/RetroContext";
-import ConfirmModal from "../Retros/ConfirmModal";
-import { notify, openModal } from "@/helpers";
-import WelcomeModal from "../Modals/WelcomeModal";
-import Link from "next/link";
+import { ConfirmModal, WelcomeModal } from "@/components/Modals";
+import { notify } from "@/helpers";
 import useAuthor from "@/hooks/useAuthor";
-import Idea from "@/components/Idea";
-import { Idea as IdeaInterface } from "@/contexts/RetroContext";
-import { ideaTypes, IdeaType } from "@/contexts/RetroContext";
-import Draggable from "../Draggable";
-import Group from "../Group";
-import Footer from "../Footer";
+import Group from "./Group";
+import Footer from "../../Footer";
 
 interface GroupLabeling {
   id: string;
@@ -22,10 +13,9 @@ interface GroupLabeling {
 }
 
 const GroupLabeling: React.FC<GroupLabeling> = ({ id, createdBy }) => {
-  const { data } = useSession();
   const isAuthor = useAuthor(createdBy);
   const [loading, setLoading] = useState(false);
-  const { sendIdea, updateIdea, users, changeRetroStage, retros, updatePosition } = useRetroContext();
+  const { changeRetroStage, retros } = useRetroContext();
 
   const handleConfirm = () => {
     setLoading(true);
@@ -41,12 +31,14 @@ const GroupLabeling: React.FC<GroupLabeling> = ({ id, createdBy }) => {
     <>
       <main className="flex-grow flex flex-col h-full pt-4 overflow-y-scroll">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Object.keys(retros[id].groups).map((groupId) => (
+          {retros[id] &&
+          retros[id].groups.map((group) => (
             <Group
-              key={`${id}_group_${groupId}`}
-              groupId={groupId}
+              key={group.id}
+              groupId={group.id}
               retroId={id}
-              name={retros[id].groups[groupId].name}
+              ideaIds={group.ideas}
+              name={group.name}
             />
           ))}
         </div>

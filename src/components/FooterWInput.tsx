@@ -56,7 +56,7 @@ const FooterWInput = forwardRef<HTMLInputElement, FooterWInputProps>(({
           Submit
         </button>
       </form>
-      <button className="btn btn-primary w-1/8 flex-grow" disabled={!isAuthor} onClick={() => openModal("confirm_modal")}>
+      <button className="btn btn-primary w-1/8" disabled={!isAuthor} onClick={() => openModal("confirm_modal")}>
         {buttonTag}
       </button>
     </div>

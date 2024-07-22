@@ -1,10 +1,9 @@
 "use client";
 import { memo } from "react";
 import UserCard from "./UserCard";
-import { UserData, useRetroContext } from "@/contexts/RetroContext";
+import { UserData } from "@/contexts/RetroContext";
 
 const CurrentUsers: React.FC<{ users: Record<string, UserData>; createdBy: string }> = ({ users, createdBy }) => {
-  console.log("users", users);
   return (
     <div className="mb-4">
       <span className="text-2xl font-bold mb-4 pb-2 border-b-2 border-current">

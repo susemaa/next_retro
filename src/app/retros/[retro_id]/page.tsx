@@ -1,14 +1,15 @@
 "use client";
-import ActionItems from "@/components/RetroStages/ActionItems";
-import Finished from "@/components/RetroStages/Finished";
-import Grouping from "@/components/RetroStages/Grouping";
-import GroupLabeling from "@/components/RetroStages/GroupLabeling";
-import IdeaGeneration from "@/components/RetroStages/IdeaGeneration";
-import PrimeDirective from "@/components/RetroStages/PrimeDirective";
-import RetroLobby from "@/components/RetroStages/RetroLobby";
-import Voting from "@/components/RetroStages/Voting";
-import { GetRetroCallback, Retro, useRetroContext } from "@/contexts/RetroContext";
-import { get } from "http";
+import {
+  RetroLobby,
+  PrimeDirective,
+  IdeaGeneration,
+  Grouping,
+  GroupLabeling,
+  Voting,
+  ActionItems,
+  Finished,
+} from "@/components/RetroStages";
+import { useRetroContext } from "@/contexts/RetroContext";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
@@ -25,13 +26,15 @@ export default function RetroPage({ params }: { params: { retro_id: string } }) 
     if (data?.user) {
       sendUserData(params.retro_id, data.user);
     }
+    // dont add sendUserData to deps array
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.user, params.retro_id]);
 
   if (!retroData || !data?.user) {
-    setTimeout(() => {
-      if (isLoading) {
-        updStorage();
+    const timer = setInterval(() => {
+      if (isLoading && data?.user?.email) {
+        updStorage(data?.user.email);
+        clearInterval(timer);
       }
     }, 1500);
     return (

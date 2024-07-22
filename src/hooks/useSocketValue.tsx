@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 
 type ValueFunction<T> = () => T;
 
-/** use useCallback to  */
 function useSocketValue<T>(
   valueFunction: ValueFunction<T>,
   deps: React.DependencyList

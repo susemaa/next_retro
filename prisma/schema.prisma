@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Stage {
+  lobby
+  prime_directive
+  idea_generation
+  grouping
+  group_labeling
+  voting
+  action_items
+  finished
+}
+
+enum RetroType {
+  emotions
+  progress
+}
+
+model Retro {
+  id          Int          @id @default(autoincrement())
+  uId         String       @unique @default(uuid())
+  retroType   RetroType
+  stage       Stage
+  createdAt   Int
+  createdBy   String
+  ideas       Idea[]
+  groups      Group[]
+  everJoined  String[]
+  actionItems ActionItem[]
+  // onlineUsers String[]
+}
+
+model Idea {
+  id         String   @id @default(uuid())
+  idea       String
+  type       Int
+  retroUId   String
+  Retro      Retro    @relation(fields: [retroUId], references: [uId])
+  x          Int
+  y          Int
+  z          Int
+}
+
+model Group {
+  id       String   @id @default(uuid())
+  name     String
+  ideas    String[]
+  votes    String[]
+  retroUId String
+  Retro    Retro    @relation(fields: [retroUId], references: [uId])
+}
+
+model User {
+  id         Int          @id @default(autoincrement())
+  email      String       @unique
+  name       String
+  image      String
+  retroUIds  String[]
+  // ActionItem ActionItem[] @relation("AssignedUser")
+  // AuthoredItems ActionItem[] @relation("Author")
+}
+
+model ActionItem {
+  id           String @id @default(uuid())
+  name         String
+  retroUId     String
+  Retro        Retro  @relation(fields: [retroUId], references: [uId])
+  assignedEmail       String
+  // assignedUser        User    @relation(fields: [assignedEmail], references: [email], name: "AssignedUser")
+  authorEmail         String
+  // Author              User    @relation(fields: [authorEmail], references: [email], name: "Author")
+}

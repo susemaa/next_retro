@@ -1,11 +1,7 @@
 "use client";
 import React, { useEffect, memo, useState } from "react";
-import { useRouter } from "next/navigation";
-import ShareLinkModal from "@/components/Modals/ShareLinkModal";
 import { notify, openModal } from "@/helpers";
-import { useSession } from "next-auth/react";
-import UserCard from "../Retros/UserCard";
-import ConfirmModal from "../Retros/ConfirmModal";
+import { ConfirmModal, ShareLinkModal } from "@/components/Modals";
 import { useRetroContext } from "@/contexts/RetroContext";
 import CurrentUsers from "../Retros/CurrentUsers";
 import useAuthor from "@/hooks/useAuthor";
@@ -16,7 +12,6 @@ interface RetroLobby {
 }
 
 const RetroLobby: React.FC<RetroLobby> = ({ id, createdBy }) => {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { changeRetroStage, users } = useRetroContext();
   const isAuthor = useAuthor(createdBy);
@@ -32,8 +27,6 @@ const RetroLobby: React.FC<RetroLobby> = ({ id, createdBy }) => {
         console.error("Couldnt update retro stage");
         setLoading(false);
         notify("error", "Couldnt update retro stage", document.getElementById("confirm_modal"));
-      } else {
-        console.log("changed retro state!");
       }
     });
   };

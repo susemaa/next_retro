@@ -1,19 +1,13 @@
 "use client";
 import React, { useEffect, memo, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import CurrentUsers from "../Retros/CurrentUsers";
-import { Groups, useRetroContext } from "@/contexts/RetroContext";
-import ConfirmModal from "../Retros/ConfirmModal";
-import { notify, openModal } from "@/helpers";
-import WelcomeModal from "../Modals/WelcomeModal";
-import Link from "next/link";
+import { useRetroContext } from "@/contexts/RetroContext";
+import ConfirmModal from "../../Modals/ConfirmModal";
+import { notify } from "@/helpers";
+import WelcomeModal from "../../Modals/WelcomeModal";
 import useAuthor from "@/hooks/useAuthor";
-import Idea from "@/components/Idea";
-import { Idea as IdeaInterface } from "@/contexts/RetroContext";
-import { ideaTypes, IdeaType } from "@/contexts/RetroContext";
-import Draggable from "../Draggable";
-import Footer from "../Footer";
+import { Idea as IdeaInterface } from "@prisma/client";
+import Draggable from "./Draggable";
+import Footer from "../../Footer";
 
 interface Grouping {
   id: string;
@@ -21,36 +15,33 @@ interface Grouping {
 }
 
 const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
-  const { data } = useSession();
   const isAuthor = useAuthor(createdBy);
-  const { initGroups, updateIdea, users, changeRetroStage, retros, updatePosition } = useRetroContext();
+  const { initGroups, changeRetroStage, retros, updatePosition } = useRetroContext();
   const draggableParent = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [newPosition, setNewPosition] = useState({ x: 0, y: 0 });
   const [draggingIdea, setDraggingIdea] = useState<IdeaInterface | null>(null);
-  const [ideas, setIdeas] = useState<IdeaInterface[]>(Object.keys(retros[id].ideas).flatMap((type) => retros[id].ideas[type as IdeaType]));
+  const [ideas, setIdeas] = useState<IdeaInterface[]>(retros[id].ideas);
   const [scale, setScale] = useState({ x: 1, y: 1 });
   const [groups, setGroup] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (draggableParent.current) {
+    if (draggableParent.current && retros[id]) {
       const parentRect = draggableParent.current.getBoundingClientRect();
-      const { maxX, maxY } = ideaTypes.reduce(
-        (acc, type) => {
-          retros[id].ideas[type].forEach(({ id: ideaId, position }) => {
-            const el = document.getElementById(ideaId);
-            if (el) {
-              const elWidth = el.clientWidth;
-              const elHeight = el.clientHeight;
-              if (position.x + elWidth > acc.maxX) {
-                acc.maxX = position.x + elWidth;
-              }
-              if (position.y + elHeight > acc.maxY) {
-                acc.maxY = position.y + elHeight;
-              }
+      const { maxX, maxY } = retros[id].ideas.reduce(
+        (acc, idea) => {
+          const el = document.getElementById(idea.id);
+          if (el) {
+            const elWidth = el.clientWidth;
+            const elHeight = el.clientHeight;
+            if (idea.x + elWidth > acc.maxX) {
+              acc.maxX = idea.x + elWidth;
             }
-          });
+            if (idea.y + elHeight > acc.maxY) {
+              acc.maxY = idea.y + elHeight;
+            }
+          }
           return acc;
         },
         { maxX: 0, maxY: 0 }
@@ -59,8 +50,8 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
       const scaleX = maxX > parentRect.width ? parentRect.width / maxX : 1;
       const scaleY = maxY > parentRect.height ? parentRect.height / maxY : 1;
       setScale({ x: scaleX, y: scaleY });
-    } // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retros, id, draggableParent.current]);
+    }
+  }, [retros, id, draggableParent]);
 
   const checkCollision = (rect1: DOMRect, rect2: DOMRect) => {
     return !(
@@ -72,6 +63,9 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
   };
 
   useEffect(() => {
+    if (!ideas) {
+      return;
+    }
     const ideasRects: Record<string, DOMRect> = {};
 
     const handleRect = (idea: IdeaInterface) => {
@@ -120,22 +114,19 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
   }, [ideas, draggingIdea, newPosition]);
 
   useEffect(() => {
-    setIdeas(Object.keys(retros[id].ideas).flatMap((type) => retros[id].ideas[type as IdeaType]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retros[id].ideas, id, retros]);
+    setIdeas(retros[id].ideas);
+  }, [id, retros]);
 
   const handleConfirm = () => {
     let aloneCounter = 0;
-    const grouped = Object.entries(groups).reduce((acc: Groups, [ideaId, groupNumber]) => {
+    const grouped = Object.entries(groups).reduce((acc: Record<string, string[]>, [ideaId, groupNumber]) => {
       if (groupNumber === -1) {
-        acc[+(groupNumber - aloneCounter)] = { ideas: [], name: "", votes: [] };
-        acc[+(groupNumber - aloneCounter)].ideas = [ideaId];
+        acc[+(groupNumber - aloneCounter)] = [ideaId];
         aloneCounter += 1;
       } else if (!acc[+groupNumber]) {
-        acc[+groupNumber] = { ideas: [], name: "", votes: [] };
-        acc[+groupNumber].ideas = [ideaId];
+        acc[+groupNumber] = [ideaId];
       } else {
-        acc[+groupNumber].ideas.push(ideaId);
+        acc[+groupNumber].push(ideaId);
       }
       return acc;
     }, {});
@@ -196,16 +187,15 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
           onMouseLeave={handleMouseUp}
           className="flex-grow relative"
         >
-          {retros[id] && ideaTypes.flatMap((type) => (retros[id].ideas[type]
-            .map((iterIdea) => (
+          {retros[id] &&
+            retros[id].ideas.map((iterIdea) => (
               <Draggable
-                key={`${type}_${iterIdea.id}`}
+                key={iterIdea.id}
                 idea={iterIdea.idea}
-                type={type}
                 ideaId={iterIdea.id}
-                left={draggingIdea?.id === iterIdea.id ? newPosition.x : iterIdea.position.x}
-                top={draggingIdea?.id === iterIdea.id ? newPosition.y : iterIdea.position.y}
-                zIndex={iterIdea.position.z}
+                left={draggingIdea?.id === iterIdea.id ? newPosition.x : iterIdea.x}
+                top={draggingIdea?.id === iterIdea.id ? newPosition.y : iterIdea.y}
+                zIndex={iterIdea.z}
                 onMouseDown={handleMouseDown(iterIdea)}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -213,8 +203,7 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
                 groupNumber={groups[iterIdea.id]}
                 isDragging={draggingIdea?.id === iterIdea.id}
               />
-            )))
-          )}
+            ))}
         </div>
       </main>
       <Footer

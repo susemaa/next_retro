@@ -14,6 +14,11 @@ const config: Config = {
       circle: "circle",
       disc: "disc",
     },
+    extend: {
+      borderColor: {
+        select: "var(--fallback-bc, oklch(var(--bc) / 0.2))",
+      },
+    },
     keyframes: {
       "slide-bottom": {
         "0%": { transform: "translateY(100%)", opacity: "0" },

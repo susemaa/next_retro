@@ -1,13 +1,13 @@
 "use client";
 import React, { useEffect, memo, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { Groups, useRetroContext } from "@/contexts/RetroContext";
-import ConfirmModal from "../Retros/ConfirmModal";
+import { useRetroContext } from "@/contexts/RetroContext";
+import ConfirmModal from "../../Modals/ConfirmModal";
 import { notify, openModal } from "@/helpers";
-import WelcomeModal from "../Modals/WelcomeModal";
+import WelcomeModal from "../../Modals/WelcomeModal";
 import useAuthor from "@/hooks/useAuthor";
-import Footer from "../Footer";
-import GroupVoting from "../GroupVoting";
+import Footer from "../../Footer";
+import GroupVoting from "./GroupVoting";
 
 interface Voting {
   id: string;
@@ -23,10 +23,15 @@ const Voting: React.FC<Voting> = ({ id, createdBy }) => {
 
   useEffect(() => {
     if (data && data.user && data.user.email) {
-      const everJoinedUser = retros[id].everJoined.find((toFind) => toFind.email === data?.user?.email);
-      if (everJoinedUser) {
-        setUserVotes(everJoinedUser.votes);
-      }
+      const userVotes = retros[id].groups.reduce((acc, group) => {
+        group.votes.forEach(vote => {
+          if (vote === data.user?.email) {
+            acc -= 1;
+          }
+        });
+        return acc;
+      }, 3);
+      setUserVotes(userVotes);
     }
   }, [data, id, retros]);
 
@@ -44,13 +49,14 @@ const Voting: React.FC<Voting> = ({ id, createdBy }) => {
     <>
       <main className="flex-grow flex flex-col h-full pt-4 overflow-y-scroll">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Object.keys(retros[id].groups).map((groupId) => (
+          {retros[id] && retros[id].groups.map((group) => (
             <GroupVoting
-              key={`${id}_group_${groupId}`}
-              groupId={groupId}
+              key={group.id}
+              groupId={group.id}
               retroId={id}
-              name={retros[id].groups[groupId].name}
+              name={group.name}
               userVotes={userVotes}
+              ideaIds={group.ideas}
             />
           ))}
         </div>

@@ -1,16 +1,13 @@
 "use client";
-import React, { useEffect, memo, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { Ideas, useRetroContext } from "@/contexts/RetroContext";
-import ConfirmModal from "../Retros/ConfirmModal";
-import { notify, openModal } from "@/helpers";
-import WelcomeModal from "../Modals/WelcomeModal";
+import React, { memo, useState, useRef } from "react";
+import { Idea } from "@prisma/client";
+import { WelcomeModal, ConfirmModal } from "@/components/Modals";
+import { useRetroContext } from "@/contexts/RetroContext";
+import { notify } from "@/helpers";
 import useAuthor from "@/hooks/useAuthor";
-import IdeaComponent from "@/components/Idea";
-import { Idea as IdeaInterface } from "@/contexts/RetroContext";
-import { ideaTypes, IdeaType } from "@/contexts/RetroContext";
-import FooterWInput from "../FooterWInput";
+import { Idea as IdeaComponent } from "./";
+import FooterWInput from "../../FooterWInput";
+import { getIdeaTypeFromMsg, IdeaType, ideaTypes, mapRetroType, MsgType } from "@/app/api/storage/storageHelpers";
 
 interface IdeaGeneration {
   id: string;
@@ -18,18 +15,16 @@ interface IdeaGeneration {
 }
 
 const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
-  const { data } = useSession();
-  const router = useRouter();
   const isAuthor = useAuthor(createdBy);
   const inputRef = useRef<HTMLInputElement>(null);
   const { sendIdea, updateIdea, initPositions: socketInitPosistions, changeRetroStage, retros } = useRetroContext();
-  const [type, setType] = useState<IdeaType>("happy");
-  const [draggingIdea, setDraggingIdea] = useState<IdeaInterface | null>(null);
+  const [type, setType] = useState<IdeaType>(0);
+  const [draggingIdea, setDraggingIdea] = useState<Idea | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const initPositions = (ideas: Ideas, callback: () => void) => {
-    const getDimensions = (idea: IdeaInterface): { width: number; height: number } => {
+  const initPositions = (ideas: Idea[], onErrCallback: () => void) => {
+    const getDimensions = (idea: Idea): { width: number; height: number } => {
       const span = document.createElement("span");
       span.style.visibility = "hidden";
       span.style.position = "absolute";
@@ -46,31 +41,23 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
     let heightest = -1;
     let counter = 1;
 
-    const positioned = Object.keys(ideas).reduce((acc: Ideas, type) => {
-      const positionedType = ideas[type as IdeaType].map((idea) => {
-        const { width, height } = getDimensions(idea);
-        idea.position.x = xOffset;
-        idea.position.y = yOffset;
-        idea.position.z = counter;
-        if (xOffset < 1000) {
-          xOffset += width + 10;
-          if (height > heightest) {
-            heightest = height;
-          }
-        } else {
-          xOffset = 0;
-          yOffset += heightest + 10;
-          heightest = -1;
+    const positioned: Idea[] = ideas.map((idea) => {
+      const { width, height } = getDimensions(idea);
+      idea.x = xOffset;
+      idea.y = yOffset;
+      idea.z = counter;
+      if (xOffset < 1000) {
+        xOffset += width + 10;
+        if (height > heightest) {
+          heightest = height;
         }
-        counter += 1;
-        return idea;
-      });
-      acc[type as IdeaType] = positionedType;
-      return acc;
-    }, {
-      "happy": [],
-      "sad": [],
-      "confused": [],
+      } else {
+        xOffset = 0;
+        yOffset += heightest + 10;
+        heightest = -1;
+      }
+      counter += 1;
+      return idea;
     });
 
     socketInitPosistions(id, positioned, ({ status }) => {
@@ -78,7 +65,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
         setLoading(false);
         notify("error", "Couldnt init positions for ideas", document.getElementById("confirm_modal"));
       } else {
-        callback();
+        onErrCallback();
       }
     });
   };
@@ -101,7 +88,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
     setMessage("");
   };
 
-  const handleDragStart = (idea: IdeaInterface) => (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragStart = (idea: Idea) => (e: React.DragEvent<HTMLDivElement>) => {
     setDraggingIdea(idea);
   };
 
@@ -135,8 +122,9 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
   };
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    handleSetType(e.target.value as IdeaType);
+    handleSetType(getIdeaTypeFromMsg(retros[id].retroType, e.target.value as MsgType));
   };
+
 
   return (
     <>
@@ -144,7 +132,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
         <div className="flex flex-grow">
           {ideaTypes.map((ideaType) => (
             <div
-              key={ideaType}
+              key={`idea_type_${ideaType}`}
               className="w-1/3 p-4"
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -154,9 +142,10 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
                 className="text-center text-xl font-bold mb-4 border-b pb-1 border-b-2 border-current w-full"
                 onClick={handleClick(ideaType)}
               >
-                {ideaType === "happy" ? "😊 Happy" : ideaType === "sad" ? "😢 Sad" : "😕 Confused"}
+                {retros[id] && `${mapRetroType(retros[id].retroType, ideaType).emoji} ${mapRetroType(retros[id].retroType, ideaType).msg}`}
               </button>
-              {retros[id] && retros[id].ideas[ideaType].map((iterIdea) => (
+              {retros[id] &&
+              retros[id].ideas.filter((idea) => idea.type === ideaType).map((iterIdea) => (
                 <IdeaComponent
                   idea={iterIdea.idea}
                   key={`${ideaType}_${iterIdea.id}`}
@@ -171,8 +160,8 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
         </div>
       </main>
       <FooterWInput
-        options={ideaTypes as unknown as string[]}
-        selectedOption={type}
+        options={ideaTypes.map(ideaType => mapRetroType(retros[id]?.retroType, ideaType).msg)}
+        selectedOption={mapRetroType(retros[id]?.retroType, type).msg}
         handleSubmit={handleSubmit}
         onSelectChange={handleSelectChange}
         buttonTag="Grouping"

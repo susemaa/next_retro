@@ -1,6 +1,7 @@
 "use client";
-import { memo, useState, useRef, useEffect, useCallback } from "react";
-import { useRetroContext, IdeaType } from "@/contexts/RetroContext";
+import { memo, useState, useRef, useEffect } from "react";
+import { useRetroContext } from "@/contexts/RetroContext";
+import { IdeaType } from "@/app/api/storage/storageHelpers";
 import useSocketValue from "@/hooks/useSocketValue";
 
 interface IdeaProps {
@@ -14,13 +15,13 @@ interface IdeaProps {
 const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => {
   const { removeIdea, updateIdea, retros } = useRetroContext();
   const [currentIdea, setCurrentIdea] = useSocketValue(() => {
-    return retros[retroId].ideas[type].find((idea) => idea.id === id)?.idea;
-  }, [retros, retroId, id, type]);
+    return retros[retroId].ideas.find((idea) => idea.id === id)?.idea;
+  }, [retros, retroId, id]);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleRemove = () => {
-    removeIdea(retroId, id, type);
+    removeIdea(retroId, id);
   };
 
   const handleEdit = () => {

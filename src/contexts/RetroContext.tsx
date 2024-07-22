@@ -2,63 +2,66 @@
 import { createContext, useContext, useState, ReactNode, useEffect, SetStateAction, Dispatch } from "react";
 import { getSocket } from "@/socket";
 import { useSession } from "next-auth/react";
+import { Retro, User, Stage, Group, Idea } from "@prisma/client";
+import { FullRetro } from "@/app/api/storage/storage";
+import { IdeaType } from "@/app/api/storage/storageHelpers";
 
-export const retroStages = [
-  "lobby",
-  "prime_directive",
-  "idea_generation",
-  "grouping",
-  "group_labeling",
-  "voting",
-  "action_items",
-  "finished",
-] as const;
-export type RetroStages = typeof retroStages[number];
+// export const Stage = [
+//   "lobby",
+//   "prime_directive",
+//   "idea_generation",
+//   "grouping",
+//   "group_labeling",
+//   "voting",
+//   "action_items",
+//   "finished",
+// ] as const;
+// export type Stage = typeof Stage[number];
 
-export interface Idea {
-  idea: string;
-  id: string;
-  position: {
-    x: number;
-    y: number;
-    z: number;
-  },
-  // todo add type
-}
+// export interface Idea {
+//   idea: string;
+//   id: string;
+//   position: {
+//     x: number;
+//     y: number;
+//     z: number;
+//   },
+//   // todo add type
+// }
 
-export const ideaTypes = ["happy", "sad", "confused"] as const;
-export type IdeaType = (typeof ideaTypes)[number];
-// todo upd type Ideas = { "ideaId": Idea }
-export type Ideas = { [key in IdeaType]: Idea[] };
+// export const ideaTypes = ["happy", "sad", "confused"] as const;
+// export type number = (typeof ideaTypes)[number];
+// // todo upd type Idea = { "ideaId": Idea }
+// export type Idea = { [key in number]: Idea[] };
 
-export type ActionItem = {
-  assignedUser: User,
-  name: string,
-  author: User,
-  id: string;
-};
+// export type ActionItem = {
+//   assignedUser: User,
+//   name: string,
+//   author: User,
+//   id: string;
+// };
 
-export type Groups = Record<string, { name: string; ideas: Array<string>; votes: Array<string> }>;
+// export type Group = Record<string, { name: string; Idea: Array<string>; votes: Array<string> }>;
 
-export type User = {
-  email: string;
-  name: string;
-  votes: number;
-}
+// export type User = {
+//   email: string;
+//   name: string;
+//   votes: number;
+// }
 
-export interface Retro {
-  createdAt: number;
-  createdBy: string;
-  stage: RetroStages;
-  ideas: Ideas;
-  groups: Groups;
-  everJoined: Array<User>;
-  actionItems: Array<ActionItem>;
-}
+// export interface Retro {
+//   createdAt: number;
+//   createdBy: string;
+//   stage: Stage;
+//   Idea: Idea;
+//   Group: Group;
+//   everJoined: Array<User>;
+//   actionItems: Array<ActionItem>;
+// }
 
-export interface Store {
-  retros: Record<string, Retro>;
-}
+// export interface Store {
+//   retros: Record<string, Retro>;
+// }
 
 export type UserData = {
   email?: string | null;
@@ -66,18 +69,20 @@ export type UserData = {
   image?: string | null;
 };
 
+export type RawGroup = Omit<Group, "id" | "retroUId">;
+
 export type errResponse = { status: 404, error: string };
 
 export type CreateRetroCallback = (
-  data: { status: 200, id: string, retro: Retro } | errResponse
+  data: { status: 200, id: string, retro: FullRetro } | errResponse
 ) => void;
 
 export type GetRetroCallback = (
-  data: { status: 200, retro: Retro } | errResponse
+  data: { status: 200, retro: FullRetro } | errResponse
 ) => void;
 
 export type ChangeRetroStateCallback = (
-  data: { status: 200, retro: Retro} | errResponse
+  data: { status: 200, retro: FullRetro} | errResponse
 ) => void;
 
 export type InitPositionsCallback = (
@@ -90,15 +95,15 @@ export type InitGroupsCallback = (
 
 interface RetroContextType {
   isLoading: boolean;
-  retros: Record<string, Retro>;
+  retros: Record<string, FullRetro>;
   users?: Record<string, Record<string, UserData>>;
-  updStorage: () => void;
+  updStorage: (email: string) => void;
   sendUserData: (retroId: string, userData: UserData) => void;
   sendIdea: (retroId: string, type: IdeaType, message: string) => void;
-  removeIdea: (retroId: string, ideaId: string, type: IdeaType) => void;
+  removeIdea: (retroId: string, ideaId: string) => void;
   updateIdea: (retroId: string, ideaId: string, newType: IdeaType, newIdea: string) => void;
-  initPositions: (retroId: string, ideas: Ideas, callback: InitPositionsCallback) => void;
-  initGroups: (retroId: string, groups: Groups, callback: InitGroupsCallback) => void;
+  initPositions: (retroId: string, ideas: Idea[], callback: InitPositionsCallback) => void;
+  initGroups: (retroId: string, groups: Record<string, string[]>, callback: InitGroupsCallback) => void;
   updateGroupName: (retroId: string, groupId: string, newName: string) => void;
   updatePosition: (retroId: string, ideaId: string, newPosition: { x: number; y : number }) => void;
   voteAdd: (retroId: string, groupId: string, email: string) => void;
@@ -106,19 +111,12 @@ interface RetroContextType {
   sendActionItem: (retroId: string, author: User, assignee: User, item: string) => void;
   removeActionItem: (retroId: string, itemId: string) => void;
   updateActionItem: (retroId: string, itemId: string, newAssignee: User, newName: string) => void;
-  createRetro: (
-    email: string,
-    callback: CreateRetroCallback,
-  ) => void;
-  getRetro: (
-    retroId: string,
-    callback: GetRetroCallback,
-  ) => void;
   changeRetroStage: (
     retroId: string,
-    stage: RetroStages,
+    stage: Stage,
     callback: ChangeRetroStateCallback,
   ) => void;
+  getGroup: (retroId: string, groupId: string) => Group | undefined;
 }
 
 const RetroContext = createContext<RetroContextType | undefined>(undefined);
@@ -128,10 +126,10 @@ export const RetroProvider = ({
   initialRetros
 }: {
   children: ReactNode,
-  initialRetros: Record<string, Retro>
+  initialRetros: Record<string, FullRetro>
 }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [retros, setRetros] = useState<Record<string, Retro>>(initialRetros);
+  const [retros, setRetros] = useState<Record<string, FullRetro>>(initialRetros);
   const [users, setUsers] = useState<Record<string, Record<string, UserData>>>();
 
   useEffect(() => {
@@ -144,38 +142,33 @@ export const RetroProvider = ({
       setIsLoading(true);
     }
 
-    function onRetroCreated(newRetro: Retro) {
-      console.log("on retro created");
-      // setRetros((prevRetros) => ({ ...prevRetros, [newRetro.id]: newRetro }));
-    }
-
-    function onRetroUpdated(updatedRetro: Retro, retroId: string) {
+    function onRetroUpdated(updatedRetro: FullRetro, retroId: string) {
       setRetros((prevRetros) => ({
         ...prevRetros,
         [retroId]: updatedRetro
       }));
     }
 
-    function onStorage(store: Store) {
+    function onStorage(store: FullRetro[]) {
       console.log("GOT STORE", store);
-      setRetros(store.retros);
+      const storeRecord: Record<string, FullRetro> = store.reduce((acc, retro) => {
+        acc[retro.uId] = retro;
+        return acc;
+      }, {} as Record<string, FullRetro>);
+      setRetros(storeRecord);
       setIsLoading(false);
     }
 
     function onUsers(retroId: string, usersData: Record<string, UserData>) {
       setUsers((prevUsers) => {
         const newUsers = { ...prevUsers };
-        console.log("userdata", usersData);
         newUsers[retroId] = usersData;
-        console.log("SETTED USERS", newUsers);
-        console.log(Object.entries(newUsers));
         return newUsers;
       });
     }
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
-    socket.on("retroCreated", onRetroCreated);
     socket.on("retroUpdated", onRetroUpdated);
     socket.on("storage", onStorage);
     socket.on("users", onUsers);
@@ -183,7 +176,6 @@ export const RetroProvider = ({
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
-      socket.off("retroCreated", onRetroCreated);
       socket.off("retroUpdated", onRetroUpdated);
       socket.off("storage", onStorage);
       socket.off("users", onUsers);
@@ -192,27 +184,19 @@ export const RetroProvider = ({
 
   const socket = getSocket();
 
-  const createRetro = (email: string, callback: CreateRetroCallback) => {
-    socket.emit("createRetro", email, callback);
-  };
-
-  const getRetro = (retroId: string, callback: GetRetroCallback) => {
-    socket.emit("getRetro", retroId, callback);
-  };
-
   const sendIdea = (retroId: string, type: IdeaType, message: string) => {
     socket.emit("idea", retroId, type, message);
   };
 
-  const removeIdea = (retroId: string, ideaId: string, type: IdeaType) => {
-    socket.emit("removeIdea", retroId, ideaId, type);
+  const removeIdea = (retroId: string, ideaId: string) => {
+    socket.emit("removeIdea", retroId, ideaId);
   };
 
   const updateIdea = (retroId: string, ideaId: string, newType: IdeaType, newIdea: string) => {
     socket.emit("updateIdea", retroId, ideaId, newType, newIdea);
   };
 
-  const initPositions = (retroId: string, ideas: Ideas, callback: InitPositionsCallback) => {
+  const initPositions = (retroId: string, ideas: Idea[], callback: InitPositionsCallback) => {
     socket.emit("initPositions", retroId, ideas, callback);
   };
 
@@ -220,7 +204,7 @@ export const RetroProvider = ({
     socket.emit("updatePosition", retroId, ideaId, newPosition);
   };
 
-  const initGroups = (retroId: string, groups: Groups, callback: InitGroupsCallback) => {
+  const initGroups = (retroId: string, groups: Record<string, string[]>, callback: InitGroupsCallback) => {
     socket.emit("initGroups", retroId, groups, callback);
   };
 
@@ -252,16 +236,21 @@ export const RetroProvider = ({
     socket.emit("user", retroId, userData);
   };
 
-  const updStorage = () => {
-    socket.emit("upd");
+  const updStorage = (email: string) => {
+    socket.emit("upd", email);
   };
 
   const changeRetroStage = (
     retroId: string,
-    stage: RetroStages,
+    stage: Stage,
     callback: ChangeRetroStateCallback
   ) => {
     socket.emit("changeRetroStage", retroId, stage, callback);
+  };
+
+  const getGroup = (retroId: string, groupId: string) => {
+    return retros[retroId]?.groups
+      .find(group => group.id === groupId);
   };
 
   return (
@@ -271,8 +260,6 @@ export const RetroProvider = ({
       users,
       updStorage,
       sendUserData,
-      createRetro,
-      getRetro,
       changeRetroStage,
       sendIdea,
       removeIdea,
@@ -286,6 +273,7 @@ export const RetroProvider = ({
       sendActionItem,
       removeActionItem,
       updateActionItem,
+      getGroup,
     }}>
       {children}
     </RetroContext.Provider>

@@ -3,10 +3,10 @@ import { memo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import Card from "../Retros/Card";
+import Card from "./Card";
 import { useRetroContext } from "@/contexts/RetroContext";
-import { toastDurationMS } from "../../../tailwind.config";
-import { getErrorNotification } from "@/helpers";
+import { notify } from "@/helpers";
+import { RetroType } from "@prisma/client";
 
 interface ModalProps {
   title: string;
@@ -18,28 +18,24 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
   const { updStorage } = useRetroContext();
   const router = useRouter();
 
-  const handleClick = () => {
+  const handleClick = (retroType: RetroType) => {
     setLoading("");
-    fetch("/api/retros", {
+    fetch("/api/storage", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email: data?.user?.email }),
+      body: JSON.stringify({ retroType }),
     })
       .then((res) => res.json())
-      .then((data) => {
-        setLoading(data.id);
-        updStorage();
-        router.push(`/retros/${data.id}`);
+      .then((resData) => {
+        setLoading(resData.id);
+        updStorage(data?.user?.email || "");
+        router.push(`/retros/${resData.id}`);
       })
       .catch((err) => {
         console.error("Failed to fetch /api/retros", err);
-        const toast = getErrorNotification("Couldn't create retro, try again later");
-        document.getElementById("create_retro_modal")?.appendChild(toast);
-        setTimeout(() => {
-          document.getElementById("create_retro_modal")?.removeChild(toast);
-        }, toastDurationMS);
+        notify("error", "Couldn't create retro, try again later", document.getElementById("create_retro_modal"));
         setLoading(null);
       });
   };
@@ -74,7 +70,7 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
           additional="Suggested time allotment: 1 hour"
           imageSrc="happy.svg"
           imageAlt="Smiley face"
-          onClick={handleClick}
+          onClick={() => handleClick("emotions")}
         />
         <Card
           title="Start/Stop/Continue"
@@ -82,7 +78,7 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
           additional="Suggested time allotment: 45 - 60 minutes"
           imageSrc="traffic-light.svg"
           imageAlt="Traffic light"
-          onClick={handleClick}
+          onClick={() => handleClick("progress")}
         />
       </div>
       <form method="dialog" className="modal-backdrop">

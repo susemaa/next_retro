@@ -1,27 +1,28 @@
 import { memo, useState, useRef, useEffect } from "react";
-import { useRetroContext, IdeaType, Idea as IdeaInterface } from "@/contexts/RetroContext";
-import useSocketValue from "@/hooks/useSocketValue";
+import { useRetroContext } from "@/contexts/RetroContext";
 import { useSession } from "next-auth/react";
+import { IdeaType, mapRetroType } from "@/app/api/storage/storageHelpers";
 
 interface GroupVoting {
   retroId: string;
   groupId: string;
   name: string;
   userVotes: number;
+  ideaIds: string[];
 }
 
-const GroupVoting: React.FC<GroupVoting> = ({ retroId, groupId, name, userVotes }) => {
-  const { retros, voteAdd, voteSubstract } = useRetroContext();
+const GroupVoting: React.FC<GroupVoting> = ({ retroId, groupId, name, userVotes, ideaIds }) => {
+  const { retros, voteAdd, voteSubstract, getGroup } = useRetroContext();
   const { data } = useSession();
   const [groupVotes, setGroupVotes] = useState(
-    retros[retroId].groups[groupId].votes.filter(email => email === data?.user?.email || "")
+    getGroup(retroId, groupId)?.votes.filter(email => email === data?.user?.email || "")
   );
 
   useEffect(() => {
     setGroupVotes(
-      retros[retroId].groups[groupId].votes.filter(email => email === data?.user?.email || "")
+      getGroup(retroId, groupId)?.votes.filter(email => email === data?.user?.email || "")
     );
-  }, [retroId, groupId, retros, data?.user?.email]);
+  }, [retroId, groupId, retros, data?.user?.email, getGroup]);
 
   const handleAdd = () => {
     if (data?.user?.email) {
@@ -54,11 +55,11 @@ const GroupVoting: React.FC<GroupVoting> = ({ retroId, groupId, name, userVotes 
             <button
               className="btn btn-outline btn-xs"
               onClick={handleSubstract}
-              disabled={!retros[retroId].groups[groupId].votes.includes(data?.user?.email || "")}
+              disabled={!getGroup(retroId, groupId)?.votes.includes(data?.user?.email || "")}
             >
               -
             </button>
-            <span className="text-lg">{groupVotes.length}</span>
+            <span className="text-lg">{groupVotes?.length}</span>
             <button
               className="btn btn-outline btn-xs"
               onClick={handleAdd}
@@ -70,27 +71,18 @@ const GroupVoting: React.FC<GroupVoting> = ({ retroId, groupId, name, userVotes 
         </div>
       </div>
       <div className="overflow-y-auto shadow-inner">
-        {retros[retroId].groups[groupId].ideas.map((ideaId: string) => {
-          const ideaData = Object.keys(retros[retroId].ideas).reduce(
-            (acc: { idea: IdeaInterface | undefined; type: string | undefined }, type) => {
-              const idea = retros[retroId].ideas[type as IdeaType].find((idea) => idea?.id === ideaId);
-              if (idea) {
-                return { idea, type };
-              }
-              return acc;
-            },
-            { idea: undefined, type: undefined }
-          );
-          return (
-            ideaData.idea && (
-              <div key={ideaData.idea.id} className="flex items-center mb-2 border-b pb-1 border-current">
+        {retros[retroId] && retros[retroId].ideas.map((idea) => {
+          if (ideaIds.includes(idea.id)) {
+            return (
+              <div key={idea.id} className="flex items-center mb-2 border-b pb-1 border-current">
                 <span className="mr-2">
-                  {ideaData.type === "happy" ? "😊" : ideaData.type === "sad" ? "😢" : "😕"}
+                  {mapRetroType(retros[retroId].retroType, idea.type as IdeaType).emoji}
                 </span>
-                <span>{ideaData.idea.idea}</span>
+                <span>{idea.idea}</span>
               </div>
-            )
-          );
+            );
+          }
+          return null;
         })}
       </div>
     </div>

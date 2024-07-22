@@ -1,32 +1,42 @@
-"use client";
-import { memo } from "react";
+import { getServerSession } from "next-auth";
 import RetroLi from "./RetroLi";
-import CreateRetroModal from "@/components/Modals/CreateRetroModal";
+import { FullRetro } from "@/app/api/storage/storage";
+import { CreateRetroModal } from "../Modals";
 import CreateRetroButton from "@/components/Retros/CreateRetroButton";
-import { Retro, useRetroContext } from "@/contexts/RetroContext";
-import { useSession } from "next-auth/react";
 
-async function getRetros(): Promise<Record<string, Retro>> {
-  const res = await fetch(new URL("/api/retros", "http://localhost:3000"), {
+async function getRetros(): Promise<FullRetro[]> {
+  const session = await getServerSession();
+  if (!session) {
+    return [];
+  }
+  await fetch(new URL(`/api/storage/user/${session.user?.email}`, "http://localhost:3000"), {
+    method: "POST",
+    body: JSON.stringify({
+      session,
+    }),
+  });
+  const res = await fetch(new URL("/api/storage", "http://localhost:3000"), {
     method: "GET",
+    headers: {
+      "email": session.user?.email || "",
+    },
     cache: "no-store"
   });
-  return res.json();
+  const data = await res.json();
+  return data.retros;
 }
 
-// const Retros: React.FC = async () => {
-const Retros: React.FC = () => {
-  // const retros = await getRetros();
-  const { retros } = useRetroContext();
+const Retros: React.FC = async () => {
+  const retros = await getRetros();
   return (
     <main className="flex-grow flex flex-col p-8 h-full">
       <h1 className="text-2xl font-bold mb-4 border-b pb-2 inline-block border-current">
         My Retros
       </h1>
-      {Object.entries(retros).map(([id, retro]) => (
+      {retros?.map((retro) => (
         <RetroLi
-          key={id}
-          id={id}
+          key={retro.uId}
+          id={retro.uId}
           title={`created by ${retro.createdBy} at ${retro.createdAt}`}
           items={[{ itemName: "Stage", owner: retro.stage }]}
         />
@@ -37,4 +47,4 @@ const Retros: React.FC = () => {
   );
 };
 
-export default memo(Retros);
+export default Retros;

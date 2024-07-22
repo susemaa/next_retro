@@ -1,6 +1,7 @@
 "use client";
 import { memo, useState, useRef, useEffect } from "react";
-import { useRetroContext, ActionItem as ActionItemInterface } from "@/contexts/RetroContext";
+import { ActionItem as ActionItemInterface } from "@prisma/client";
+import { useRetroContext } from "@/contexts/RetroContext";
 import useSocketValue from "@/hooks/useSocketValue";
 
 interface ActionItemProps {
@@ -33,8 +34,19 @@ const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finish
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    updateActionItem(retroId, id, retros[retroId].actionItems.find(item => item.id === id)!.assignedUser, currentItem.name);
-    setEditing(false);
+    const emailToAssign = retros[retroId].actionItems.find(item => item.id === id)?.assignedEmail;
+    const userToAssign = retros[retroId].everJoinedUsers.find(user => user.email === emailToAssign);
+    if (userToAssign) {
+      updateActionItem(retroId, id, userToAssign, currentItem.name);
+      setEditing(false);
+    }
+  };
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newUser = retros[retroId].everJoinedUsers.find(user => user.name === e.target.value);
+    if (newUser) {
+      updateActionItem(retroId, id, newUser, currentItem.name);
+    }
   };
 
   useEffect(() => {
@@ -58,7 +70,9 @@ const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finish
           />
         </form>
       ) : (
-        <span className="whitespace-nowrap overflow-x-auto">{currentItem.name} ({currentItem.assignedUser.name})</span>
+        <span className="whitespace-nowrap overflow-x-auto">
+          {currentItem.name} ({retros[retroId].everJoinedUsers.find(user => user.email === currentItem.assignedEmail)?.name})
+        </span>
       )}
       {!finished && <div className="flex space-x-2">
         {editing
@@ -70,7 +84,29 @@ const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finish
           :
           <>
             {currentItem !== actionItem && <span className="loading loading-spinner loading-xs"></span>}
-            <button className="btn btn-xs btn-outline btn-circle" onClick={handleEdit}>✏️</button>
+            <div className="dropdown dropdown-left">
+              <button tabIndex={0} className="btn btn-xs btn-outline btn-circle">✏️</button>
+              <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                <li>
+                  <div
+                    className="inline-flex cursor-pointer select-none appearance-none h-12 min-h-12 pl-4 pr-10 text-sm text-left leading-5 rounded-btn bg-fallback-b1 border border-gray-600"
+                    onClick={handleEdit}
+                  >
+                    Text
+                  </div>
+                </li>
+                <li>
+                  <select
+                    className="select select-bordered w-full"
+                    onChange={handleSelectChange}
+                  >
+                    {retros[retroId].everJoinedUsers.map(user => (
+                      <option key={user.email} value={user.name}>{user.name}</option>
+                    ))}
+                  </select>
+                </li>
+              </ul>
+            </div>
             <button className="btn btn-xs btn-outline btn-circle" onClick={handleRemove}>x</button>
           </>
         }

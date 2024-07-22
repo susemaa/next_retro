@@ -1,8 +1,23 @@
 import { createServer } from "http";
 import next from "next";
 import { Server } from "socket.io";
-import { v4 as uuidv4 } from "uuid";
-import { get, getStore, set } from "./store.js";
+import {
+  addEverjoined,
+  addGroups,
+  addIdea,
+  addUser,
+  deleteIdea,
+  getFullRetro,
+  getFullStore,
+  getRetro,
+  getUser,
+  updateGroup,
+  updateIdea,
+  updateRetro,
+  addActionItem,
+  updateActionItem,
+  deleteActionItem,
+} from "./src/app/api/storage/storage.js";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -17,248 +32,213 @@ app.prepare().then(() => {
   const io = new Server(httpServer);
 
   io.on("connection", (socket) => {
-    socket.on("createRetro", (email, callback) => {
-      const generatedUuid = uuidv4();
-      const newRetro = {
-        createdAt: Date.now(),
-        createdBy: email,
-        stage: "lobby",
-        ideas: {
-          "happy": [],
-          "sad": [],
-          "confused": [],
-        },
-        groups: {},
-        everJoined: [],
-        actionItems: [],
-      };
-      // TODO save to storage
-      set(generatedUuid, newRetro);
-      console.log("setted socket", getStore());
-      callback({ status: 200, id: generatedUuid, retro: newRetro });
-      // callback({ status: 400 }); // if not saved
-    });
 
-    socket.on("getRetro", (retroId, callback) => {
-      const retro = get(retroId);
-      if (retro) {
-        callback({ status: 200, retro });
-      } else {
-        callback({ status: 404, error: "Retro not found" });
-      }
-    });
-
-    socket.on("changeRetroStage", (retroId, stage, callback) => {
-      const retro = get(retroId);
-      if (retro) {
-        retro.stage = stage;
-        if (stage === "finished") {
-          // fetch(new URL("/api/mailer", "http://localhost:3000"), {
-          //   method: "POST",
-          //   body: {
-          //     to: retro.everJoined.map(user => user.email),
-          //     subject: "Action items from Retro",
-          //     text: retro.actionItems.map(item => `${item.name} (${item.assignedUser.name})`).join("\n"),
-          //   },
-          // });
+    socket.on("changeRetroStage", async (retroId, stage, callback) => {
+      try {
+        const retro = await getFullRetro(retroId);
+        if (!retro) {
+          throw new Error();
         }
-        set(retroId, retro);
+        retro.stage = stage;
+        await updateRetro(retroId, {
+          id: retro.id,
+          uId: retro.uId,
+          retroType: retro.retroType,
+          stage: retro.stage,
+          createdAt: retro.createdAt,
+          createdBy: retro.createdBy,
+          everJoined: retro.everJoined,
+        });
         callback({ status: 200, retro });
         socket.emit("retroUpdated", retro, retroId);
         socket.broadcast.emit("retroUpdated", retro, retroId);
-      } else {
+      } catch {
         callback({ status: 404, error: "Retro not found" });
       }
     });
 
-    socket.on("idea", (retroId, type, message) => {
-      const retro = get(retroId);
-      if (retro && retro.ideas[type]) {
-        retro.ideas[type].push({
-          idea: message,
-          id: uuidv4(),
-          position: { x: 0, y: 0, z: 0 },
-        });
-        set(retroId, retro);
+    socket.on("idea", async (retroId, type, message) => {
+      const retro = await getFullRetro(retroId);
+      if (retro) {
+        const idea = await addIdea(retroId, message, type);
+        retro.ideas.push(idea);
         socket.emit("retroUpdated", retro, retroId);
         socket.broadcast.emit("retroUpdated", retro, retroId);
       }
     });
 
-    socket.on("removeIdea", (retroId, ideaId, type) => {
-      const retro = get(retroId);
-      if (retro && retro.ideas[type]) {
-        const ideaIndex = retro.ideas[type].findIndex(idea => idea.id === ideaId);
+    socket.on("removeIdea", async (retroId, ideaId) => {
+      const retro = await getFullRetro(retroId);
+      if (retro) {
+        const ideaIndex = retro.ideas.findIndex(idea => idea.id === ideaId);
         if (ideaIndex !== -1) {
-          retro.ideas[type].splice(ideaIndex, 1);
-          set(retroId, retro);
+          retro.ideas.splice(ideaIndex, 1);
+          await deleteIdea(ideaId);
           socket.emit("retroUpdated", retro, retroId);
           socket.broadcast.emit("retroUpdated", retro, retroId);
         }
       }
     });
 
-    socket.on("updateIdea", (retroId, ideaId, newType, newIdea) => {
-      const retro = get(retroId);
-      if (retro && retro.ideas[newType]) {
-        Object.keys(retro.ideas).some((type) => {
-          const ideaIndex = retro.ideas[type].findIndex(idea => idea.id === ideaId);
-          if (ideaIndex !== -1) {
-            if (type === newType) {
-              retro.ideas[type][ideaIndex].idea = newIdea;
-            } else {
-              const [idea] = retro.ideas[type].splice(ideaIndex, 1);
-              idea.idea = newIdea;
-              retro.ideas[newType].push(idea);
-            }
-            set(retroId, retro);
-            socket.emit("retroUpdated", retro, retroId);
-            socket.broadcast.emit("retroUpdated", retro, retroId);
-            return true;
-          }
-          return false;
-        });
+    socket.on("updateIdea", async (retroId, ideaId, newType, newIdea) => {
+      const retro = await getFullRetro(retroId);
+      if (retro) {
+        const ideaIndex = retro.ideas.findIndex(idea => idea.id === ideaId);
+        if (ideaIndex !== -1) {
+          const idea = retro.ideas[ideaIndex];
+          idea.idea = newIdea;
+          idea.type = newType;
+          await updateIdea(idea.id, idea);
+          socket.emit("retroUpdated", retro, retroId);
+          socket.broadcast.emit("retroUpdated", retro, retroId);
+        }
       }
     });
 
-    socket.on("initPositions", (retroId, ideas, cb) => {
-      const retro = get(retroId);
+    socket.on("initPositions", async (retroId, ideas, cb) => {
+      const retro = await getRetro(retroId);
       if (retro) {
-        retro.ideas = ideas;
+        await Promise.all(ideas.map(async (idea) => await updateIdea(idea.id, idea)));
         cb({ status: 200 });
-        set(retroId, retro);
+        // socket.emit("retroUpdated", retro, retroId);
+        // socket.broadcast.emit("retroUpdated", retro, retroId);
       } else {
         cb({ status: 404, error: `Retro with ${retroId} not found`});
       }
     });
 
-    socket.on("updatePosition", (retroId, ideaId, newPosition) => {
-      const retro = get(retroId);
+    socket.on("updatePosition", async (retroId, ideaId, newPosition) => {
+      const retro = await getFullRetro(retroId);
       if (retro) {
-        Object.keys(retro.ideas).some((type) => {
-          const ideaIndex = retro.ideas[type].findIndex(idea => idea.id === ideaId);
-          if (ideaIndex !== -1) {
-            retro.ideas[type][ideaIndex].position = {
-              ...retro.ideas[type][ideaIndex].position,
-              ...newPosition,
-            };
-            set(retroId, retro);
+        // retro.ideas.some(async (idea) => {
+        retro.ideas.forEach(async (idea) => {
+          if (idea.id === ideaId) {
+            idea.x = newPosition.x;
+            idea.y = newPosition.y;
+            await updateIdea(idea.id, idea);
             socket.emit("retroUpdated", retro, retroId);
             socket.broadcast.emit("retroUpdated", retro, retroId);
-            return true;
+            // return true;
           }
-          return false;
+          // return false;
         });
       }
     });
 
-    socket.on("initGroups", (retroId, groups, cb) => {
-      const retro = get(retroId);
+    socket.on("initGroups", async (retroId, groups, cb) => {
+      const retro = await getRetro(retroId);
       if (retro) {
-        retro.groups = groups;
+        // Object.values(groups).map(async (ideaIds) => await addGroup(retroId, ideaIds));
+        await addGroups(retroId, Object.values(groups));
         cb({ status: 200 });
-        set(retroId, retro);
       } else {
         cb({ status: 404, error: `Retro with ${retroId} not found`});
       }
     });
 
-    socket.on("updateGroupName", (retroId, groupId, newName) => {
-      const retro = get(retroId);
+    socket.on("updateGroupName", async (retroId, groupId, newName) => {
+      const retro = await getFullRetro(retroId);
       if (retro) {
-        const group = retro.groups[groupId];
+        const group = retro.groups.find(group => group.id === groupId);
         if (group) {
           group.name = newName;
-          retro.groups = { ...retro.groups, [groupId]: group };
-          set(retroId, retro);
+          await updateGroup(groupId, group);
           socket.emit("retroUpdated", retro, retroId);
           socket.broadcast.emit("retroUpdated", retro, retroId);
         }
       }
     });
 
-    socket.on("voteAdd", (retroId, groupId, email) => {
-      const retro = get(retroId);
+    socket.on("voteAdd", async (retroId, groupId, email) => {
+      const retro = await getFullRetro(retroId);
       if (retro) {
-        const user = retro.everJoined.find(user => user.email === email);
-        if (user && user.votes > 0) {
-          user.votes -= 1;
-          retro.groups[groupId].votes.push(email);
-          set(retroId, retro);
+        const group = retro.groups.find(group => group.id === groupId);
+        const userEmail = retro.everJoined.find(iterEmail => iterEmail === email);
+        const userVotes = retro.groups.flatMap(group => group.votes).filter(iterEmail => iterEmail === email).length;
+        if (group && userEmail && userVotes < 3) {
+          group.votes.push(userEmail);
+          await updateGroup(groupId, group);
           socket.emit("retroUpdated", retro, retroId);
           socket.broadcast.emit("retroUpdated", retro, retroId);
         }
       }
     });
 
-    socket.on("voteSubstract", (retroId, groupId, email) => {
-      const retro = get(retroId);
-      if (retro) {
-        const user = retro.everJoined.find(user => user.email === email);
-        const groupVotes = retro.groups[groupId].votes;
-        const emailIndex = groupVotes.indexOf(email);
-        if (user && emailIndex !== -1) {
-          user.votes += 1;
-          groupVotes.splice(emailIndex, 1);
-          set(retroId, retro);
+    socket.on("voteSubstract", async (retroId, groupId, email) => {
+      const retro = await getFullRetro(retroId);
+      const group = retro?.groups.find(group => group.id === groupId);
+      if (retro && group) {
+        const userEmail = retro.everJoined.find(iterEmail => iterEmail === email) || "";
+        const userVoteIdx = group.votes.indexOf(userEmail);
+        if (userVoteIdx !== -1) {
+          group.votes.splice(userVoteIdx, 1);
+          await updateGroup(groupId, group);
           socket.emit("retroUpdated", retro, retroId);
           socket.broadcast.emit("retroUpdated", retro, retroId);
         }
       }
     });
 
-    socket.on("sendActionItem", (retroId, author, assignee, item) => {
-      const retro = get(retroId);
+    socket.on("sendActionItem", async (retroId, author, assignee, item) => {
+      const retro = await getFullRetro(retroId);
       if (retro) {
-        retro.actionItems.push({ id: uuidv4(), assignedUser: assignee, name: item, author });
-        set(retroId, retro);
+        const actionItem = await addActionItem(retroId, item, author.email, assignee.email);
+        retro.actionItems.push(actionItem);
         socket.emit("retroUpdated", retro, retroId);
         socket.broadcast.emit("retroUpdated", retro, retroId);
       }
     });
 
-    socket.on("removeActionItem", (retroId, actionItemId) => {
-      const retro = get(retroId);
+    socket.on("removeActionItem", async (retroId, actionItemId) => {
+      const retro = await getFullRetro(retroId);
       if (retro) {
         const actionItemIndex = retro.actionItems.findIndex(item => item.id === actionItemId);
         if (actionItemIndex !== -1) {
+          await deleteActionItem(actionItemId);
           retro.actionItems.splice(actionItemIndex, 1);
-          set(retroId, retro);
           socket.emit("retroUpdated", retro, retroId);
           socket.broadcast.emit("retroUpdated", retro, retroId);
         }
       }
     });
 
-    socket.on("updateActionItem", (retroId, actionItemId, newAssignee, newName) => {
-      const retro = get(retroId);
+    socket.on("updateActionItem", async (retroId, actionItemId, newAssignee, newName) => {
+      const retro = await getFullRetro(retroId);
       if (retro) {
         const actionItem = retro.actionItems.find(item => item.id === actionItemId);
         if (actionItem) {
-          actionItem.assignedUser = newAssignee;
+          actionItem.assignedEmail = newAssignee.email;
           actionItem.name = newName;
-          set(retroId, retro);
+          await updateActionItem(actionItemId, actionItem);
           socket.emit("retroUpdated", retro, retroId);
           socket.broadcast.emit("retroUpdated", retro, retroId);
         }
       }
     });
 
-    socket.on("upd", () => {
-      socket.emit("storage", getStore());
+    socket.on("upd", async (email) => {
+      const store = await getFullStore(email);
+      socket.emit("storage", store);
     });
 
-    socket.on("user", (retroId, userData) => {
-      const retro = get(retroId);
+    socket.on("user", async (retroId, userData) => {
+      const retro = await getFullRetro(retroId);
       if (
         userData &&
         userData.email &&
         userData.name &&
+        userData.image &&
         retro
       ) {
-        if (!retro.everJoined.find(user => user.email === userData.email)) {
-          retro.everJoined.push({ email: userData.email, votes: 3, name: userData.name });
-          set(retroId, retro);
+        const { email, name, image } = userData;
+        const user = await getUser(userData.email);
+        if (!user) {
+          await addUser(email, name, image);
+        }
+
+        if (!retro.everJoined.includes(email)) {
+          await addEverjoined(retroId, email);
+          retro.everJoined.push(email);
           socket.emit("retroUpdated", retro, retroId);
           socket.broadcast.emit("retroUpdated", retro, retroId);
         }
@@ -272,6 +252,7 @@ app.prepare().then(() => {
           }
         }
 
+        // Check if the email is already associated with another retroId
         for (const existingRetroId in users) {
           for (const existingSocketId in users[existingRetroId]) {
             if (users[existingRetroId][existingSocketId].email === userData.email) {
@@ -291,7 +272,6 @@ app.prepare().then(() => {
       }
     });
 
-    socket.emit("storage", getStore());
     console.log("SERVER: connected");
   });
 

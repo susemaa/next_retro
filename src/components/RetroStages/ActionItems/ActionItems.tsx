@@ -1,20 +1,14 @@
 "use client";
-import React, { useEffect, memo, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { memo, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
-import CurrentUsers from "../Retros/CurrentUsers";
-import { Groups, useRetroContext } from "@/contexts/RetroContext";
-import ConfirmModal from "../Retros/ConfirmModal";
-import { notify, openModal } from "@/helpers";
-import WelcomeModal from "../Modals/WelcomeModal";
-import Link from "next/link";
+import { notify } from "@/helpers";
+import { useRetroContext } from "@/contexts/RetroContext";
+import { ConfirmModal, WelcomeModal } from "@/components/Modals";
 import useAuthor from "@/hooks/useAuthor";
-import Footer from "../Footer";
-import GroupVoting from "../GroupVoting";
-import GroupVoted from "../GroupVoted";
-import FooterWInput from "../FooterWInput";
-import Idea from "../Idea";
-import ActionItem from "../ActionItem";
+import { GroupVoted } from "../Finished";
+import FooterWInput from "../../FooterWInput";
+import ActionItem from "./ActionItem";
+
 
 interface ActionItems {
   id: string;
@@ -25,22 +19,31 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
   const { data } = useSession();
   const isAuthor = useAuthor(createdBy);
   const [loading, setLoading] = useState(false);
-  const { changeRetroStage, retros, sendActionItem } = useRetroContext();
+  const { changeRetroStage, retros, sendActionItem, getGroup } = useRetroContext();
   const [message, setMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const [assignee, setAssignee] = useState(retros[id].everJoined[0]);
+  const [assignee, setAssignee] = useState(retros[id].everJoinedUsers[0]);
 
   const handleConfirm = () => {
     setLoading(true);
     const retro = retros[id];
+    const mapEmails = retro.everJoinedUsers.reduce((acc, user) => {
+      acc[user.email] = user.name;
+      return acc;
+    }, {} as { [key: string]: string });
+
     fetch(new URL("/api/mailer", "http://localhost:3000"), {
       method: "POST",
       body: JSON.stringify({
-        to: retro.everJoined.map(user => user.email),
+        to: retro.everJoined,
         subject: "Action items from Retro",
-        text: retro.actionItems.map(item => `${item.name} (${item.assignedUser.name})`).join("\n"),
+        text: retro.actionItems
+          .map(item =>
+            `${item.name} (${mapEmails[item.assignedEmail]})`)
+          .join("\n"),
       }),
     });
+
     changeRetroStage(id, "finished", (res) => {
       if (res.status !== 200) {
         setLoading(false);
@@ -51,7 +54,7 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const sender = retros[id].everJoined.find(user => user.email === data?.user?.email);
+    const sender = retros[id].everJoinedUsers.find(user => user.email === data?.user?.email);
     if (sender) {
       sendActionItem(id, sender, assignee, message);
       setMessage("");
@@ -59,7 +62,7 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
   };
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const user = retros[id].everJoined.find(user => user.name === e.target.value);
+    const user = retros[id].everJoinedUsers.find(user => user.name === e.target.value);
     if (user) {
       setAssignee(user);
       if (inputRef.current) {
@@ -74,12 +77,13 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
       <main className="flex-grow flex h-full pt-4 overflow-y-scroll">
         <div className="flex flex-col w-1/2 md:w-2/3 lg:w-3/4 mx-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.keys(retros[id].groups).map((groupId) => (
+            {retros[id].groups.map((group) => (
               <GroupVoted
-                key={`${id}_group_${groupId}`}
-                groupId={groupId}
+                key={group.id}
+                groupId={group.id}
                 retroId={id}
-                name={retros[id].groups[groupId].name}
+                name={getGroup(id, group.id)?.name || ""}
+                ideaIds={group.ideas}
               />
             ))}
           </div>
@@ -103,8 +107,8 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
         </div>
       </main>
       <FooterWInput
-        options={retros[id].everJoined.map(user => user.name)}
-        selectedOption={assignee.name}
+        options={retros[id] && retros[id].everJoinedUsers.map(user => user.name)}
+        selectedOption={assignee && assignee.name}
         handleSubmit={handleSubmit}
         onSelectChange={handleSelectChange}
         buttonTag="Send Action Items 📨"

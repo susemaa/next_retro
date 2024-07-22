@@ -1,9 +1,8 @@
 "use client";
 import { memo, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { toastDurationMS } from "@/../tailwind.config";
-import { getSuccessfulNotification, notify } from "@/helpers";
+import { usePathname } from "next/navigation";
+import { notify } from "@/helpers";
 
 interface ModalProps {
 }

@@ -1,8 +1,6 @@
-import { memo, useEffect, useState, useRef } from "react";
-import { IdeaType } from "@/contexts/RetroContext";
+import { memo } from "react";
 
 interface DraggableProps {
-  type: IdeaType;
   ideaId: string;
   left: number;
   top: number;
@@ -17,7 +15,6 @@ interface DraggableProps {
 }
 
 const Draggable: React.FC<DraggableProps> = ({
-  type,
   ideaId,
   left,
   top,
@@ -43,7 +40,7 @@ const Draggable: React.FC<DraggableProps> = ({
         transformOrigin: "top left",
         transform: `scale(${scale.x}, ${scale.y})`,
         pointerEvents: isDragging ? "none" : "auto",
-        borderColor: `${groupNumber === -1 ? "white" : colors[groupNumber % colors.length]}`
+        borderColor: `${groupNumber === -1 ? "white" : colors[groupNumber % colors.length]}`,
       }}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
