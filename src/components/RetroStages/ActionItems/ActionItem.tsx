@@ -99,6 +99,7 @@ const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finish
                   <select
                     className="select select-bordered w-full"
                     onChange={handleSelectChange}
+                    value={retros[retroId].everJoinedUsers.find(user => user.email === currentItem.assignedEmail)?.name}
                   >
                     {retros[retroId].everJoinedUsers.map(user => (
                       <option key={user.email} value={user.name}>{user.name}</option>

@@ -129,11 +129,11 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
   return (
     <>
       <main className="flex-grow flex flex-col px-8 h-full overflow-y-auto">
-        <div className="flex flex-grow">
+        <div className="flex-grow hidden md:grid grid-cols-3 gap-4">
           {ideaTypes.map((ideaType) => (
             <div
               key={`idea_type_${ideaType}`}
-              className="w-1/3 p-4"
+              className="w-full pt-4"
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop(ideaType)}
@@ -156,6 +156,37 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
                 />
               ))}
             </div>
+          ))}
+        </div>
+        <div className="flex flex-grow flex-col md:hidden">
+          <div className="w-full grid grid-cols-3 gap-1 pt-4 mb-4">
+            {ideaTypes.map((ideaType) => (
+              <div
+                key={`idea_type_${ideaType}`}
+                className={`w-full ${ideaType === type && "selected-type"}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop(ideaType)}
+              >
+                <button
+                  className="text-center text-xl font-bold border-b pb-1 border-b-2 border-current w-full"
+                  onClick={handleClick(ideaType)}
+                >
+                  {retros[id] && `${mapRetroType(retros[id].retroType, ideaType).emoji}`}
+                </button>
+              </div>
+            ))}
+          </div>
+          {retros[id] &&
+          retros[id].ideas.filter((idea) => idea.type === type).map((iterIdea) => (
+            <IdeaComponent
+              idea={iterIdea.idea}
+              key={`${type}_${iterIdea.id}`}
+              id={iterIdea.id}
+              type={type}
+              retroId={id}
+              onDragStart={handleDragStart(iterIdea)}
+            />
           ))}
         </div>
       </main>

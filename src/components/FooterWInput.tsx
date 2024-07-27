@@ -24,9 +24,9 @@ const FooterWInput = forwardRef<HTMLInputElement, FooterWInputProps>(({
 }, ref) => {
 
   return (
-    <div className="flex py-4 justify-between">
+    <div className="flex flex-col md:flex-row px-8  py-4 justify-between">
       <select
-        className="select select-bordered w-1/4 flex-grow"
+        className="select select-bordered w-full md:w-1/4 mb-2 md:mb-0"
         onChange={onSelectChange}
         value={selectedOption}
       >
@@ -43,20 +43,20 @@ const FooterWInput = forwardRef<HTMLInputElement, FooterWInputProps>(({
         <input
           ref={ref}
           type="text"
-          className="input input-bordered w-1/2 mx-4 flex-grow"
+          className="input input-bordered w-full mb-2 md:mb-0 md:mx-4"
           placeholder="Enter your message"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
         <button
           type="submit"
-          className="btn btn-primary w-1/8 mr-4 flex-grow"
+          className="btn btn-primary w-1/4 md:mr-4"
           disabled={message.length === 0}
         >
           Submit
         </button>
       </form>
-      <button className="btn btn-primary w-1/8" disabled={!isAuthor} onClick={() => openModal("confirm_modal")}>
+      <button className="btn btn-primary md:w-1/6 mt-2 md:mt-0" disabled={!isAuthor} onClick={() => openModal("confirm_modal")}>
         {buttonTag}
       </button>
     </div>

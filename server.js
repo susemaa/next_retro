@@ -269,21 +269,22 @@ app.prepare().then(() => {
         }
         users[retroId][socket.id] = userData;
         socket.emit("users", retroId, users[retroId]);
+        socket.broadcast.emit("users", retroId, users[retroId]);
       }
     });
 
-    console.log("SERVER: connected");
-  });
-
-  io.on("disconnect", (socket) => {
-    for (const retroId in users) {
-      if (users[retroId][socket.id]) {
-        delete users[retroId][socket.id];
-        socket.broadcast.emit("users", retroId, users[retroId]);
-        break;
+    socket.on("disconnect", () => {
+      for (const retroId in users) {
+        if (users[retroId][socket.id]) {
+          delete users[retroId][socket.id];
+          socket.broadcast.emit("users", retroId, users[retroId]);
+          break;
+        }
       }
-    }
-    console.log("SERVER: disconnected");
+      console.log("SERVER: disconnected");
+    });
+
+    console.log("SERVER: connected");
   });
 
   httpServer

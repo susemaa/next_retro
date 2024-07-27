@@ -1,7 +1,7 @@
 "use client";
 import { memo, useState, useRef, useEffect } from "react";
 import { useRetroContext } from "@/contexts/RetroContext";
-import { IdeaType } from "@/app/api/storage/storageHelpers";
+import { IdeaType, ideaTypes, mapRetroType } from "@/app/api/storage/storageHelpers";
 import useSocketValue from "@/hooks/useSocketValue";
 
 interface IdeaProps {
@@ -74,7 +74,32 @@ const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => 
           :
           <>
             {currentIdea !== idea && <span className="loading loading-spinner loading-xs"></span>}
-            <button className="btn btn-xs btn-outline btn-circle" onClick={handleEdit}>✏️</button>
+            <div className="dropdown dropdown-left">
+              <button tabIndex={0} className="btn btn-xs btn-outline btn-circle">✏️</button>
+              <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                <li>
+                  <div
+                    className="inline-flex cursor-pointer select-none appearance-none h-12 min-h-12 pl-4 pr-10 text-sm text-left leading-5 rounded-btn bg-fallback-b1 border border-gray-600"
+                    onClick={handleEdit}
+                  >
+                    Text
+                  </div>
+                </li>
+                <li>
+                  <select
+                    className="select select-bordered w-full"
+                    onChange={(e) =>{
+                      updateIdea(retroId, id, +(e.target.value) as IdeaType, idea);
+                    }}
+                    value={type}
+                  >
+                    {ideaTypes.map(ideaType => (
+                      <option key={ideaType} value={ideaType}>{mapRetroType(retros[retroId].retroType, ideaType).msg}</option>
+                    ))}
+                  </select>
+                </li>
+              </ul>
+            </div>
             <button className="btn btn-xs btn-outline btn-circle" onClick={handleRemove}>x</button>
           </>
         }
