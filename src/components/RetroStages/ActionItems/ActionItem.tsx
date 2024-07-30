@@ -8,11 +8,18 @@ interface ActionItemProps {
   actionItem: ActionItemInterface;
   id: string;
   retroId: string;
+  isAuthor: boolean;
   finished?: boolean;
 }
 
-const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finished }) => {
-  const { removeActionItem, updateActionItem, retros } = useRetroContext();
+const ActionItem: React.FC<ActionItemProps> = ({
+  actionItem,
+  id,
+  retroId,
+  finished,
+  isAuthor,
+}) => {
+  const { removeActionItem, updateActionItem, updateActionAuthor, retros } = useRetroContext();
   const [currentItem, setCurrentItem] = useSocketValue(() => {
     return retros[retroId].actionItems.find(item => item.id === id) as ActionItemInterface;
   }, [retros, retroId, id]);
@@ -42,10 +49,12 @@ const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finish
     }
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleSelectChange = (type: "assignee" | "author") => (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newUser = retros[retroId].everJoinedUsers.find(user => user.name === e.target.value);
-    if (newUser) {
-      updateActionItem(retroId, id, newUser, currentItem.name);
+    if (type === "assignee") {
+      updateActionItem(retroId, id, newUser || e.target.value as "unassigned", currentItem.name);
+    } else if (type === "author") {
+      updateActionAuthor(retroId, id, newUser || e.target.value as "unauthored");
     }
   };
 
@@ -70,8 +79,10 @@ const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finish
           />
         </form>
       ) : (
-        <span className="whitespace-nowrap overflow-x-auto">
-          {currentItem.name} ({retros[retroId].everJoinedUsers.find(user => user.email === currentItem.assignedEmail)?.name})
+        <span>
+          {retros[retroId].everJoinedUsers.find(user => user.email === currentItem.authorEmail)?.name || "Unauthored"}
+          {" - "}{currentItem.name}
+          {" "}({retros[retroId].everJoinedUsers.find(user => user.email === currentItem.assignedEmail)?.name || "Unassiged"})
         </span>
       )}
       {!finished && <div className="flex space-x-2">
@@ -98,14 +109,27 @@ const ActionItem: React.FC<ActionItemProps> = ({ actionItem, id, retroId, finish
                 <li>
                   <select
                     className="select select-bordered w-full"
-                    onChange={handleSelectChange}
-                    value={retros[retroId].everJoinedUsers.find(user => user.email === currentItem.assignedEmail)?.name}
+                    onChange={handleSelectChange("assignee")}
+                    value={retros[retroId].everJoinedUsers.find(user => user.email === currentItem.assignedEmail)?.name || "Unassigned"}
                   >
+                    <option value="unassigned">Unassigned</option>
                     {retros[retroId].everJoinedUsers.map(user => (
                       <option key={user.email} value={user.name}>{user.name}</option>
                     ))}
                   </select>
                 </li>
+                {isAuthor && <li>
+                  <select
+                    className="select select-bordered w-full"
+                    onChange={handleSelectChange("author")}
+                    value={retros[retroId].everJoinedUsers.find(user => user.email === currentItem.authorEmail)?.name || "unauthored"}
+                  >
+                    <option value="unauthored">Unauthored</option>
+                    {retros[retroId].everJoinedUsers.map(user => (
+                      <option key={user.email} value={user.name}>{user.name}</option>
+                    ))}
+                  </select>
+                </li>}
               </ul>
             </div>
             <button className="btn btn-xs btn-outline btn-circle" onClick={handleRemove}>x</button>

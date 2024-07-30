@@ -6,63 +6,6 @@ import { Retro, User, Stage, Group, Idea } from "@prisma/client";
 import { FullRetro } from "@/app/api/storage/storage";
 import { IdeaType } from "@/app/api/storage/storageHelpers";
 
-// export const Stage = [
-//   "lobby",
-//   "prime_directive",
-//   "idea_generation",
-//   "grouping",
-//   "group_labeling",
-//   "voting",
-//   "action_items",
-//   "finished",
-// ] as const;
-// export type Stage = typeof Stage[number];
-
-// export interface Idea {
-//   idea: string;
-//   id: string;
-//   position: {
-//     x: number;
-//     y: number;
-//     z: number;
-//   },
-//   // todo add type
-// }
-
-// export const ideaTypes = ["happy", "sad", "confused"] as const;
-// export type number = (typeof ideaTypes)[number];
-// // todo upd type Idea = { "ideaId": Idea }
-// export type Idea = { [key in number]: Idea[] };
-
-// export type ActionItem = {
-//   assignedUser: User,
-//   name: string,
-//   author: User,
-//   id: string;
-// };
-
-// export type Group = Record<string, { name: string; Idea: Array<string>; votes: Array<string> }>;
-
-// export type User = {
-//   email: string;
-//   name: string;
-//   votes: number;
-// }
-
-// export interface Retro {
-//   createdAt: number;
-//   createdBy: string;
-//   stage: Stage;
-//   Idea: Idea;
-//   Group: Group;
-//   everJoined: Array<User>;
-//   actionItems: Array<ActionItem>;
-// }
-
-// export interface Store {
-//   retros: Record<string, Retro>;
-// }
-
 export type UserData = {
   email?: string | null;
   name?: string | null;
@@ -98,6 +41,7 @@ interface RetroContextType {
   retros: Record<string, FullRetro>;
   users?: Record<string, Record<string, UserData>>;
   updStorage: (email: string) => void;
+  updateRetroInfo: (retroId: string, newName?: string, newDescription?: string) => void;
   sendUserData: (retroId: string, userData: UserData) => void;
   sendIdea: (retroId: string, type: IdeaType, message: string) => void;
   removeIdea: (retroId: string, ideaId: string) => void;
@@ -110,7 +54,8 @@ interface RetroContextType {
   voteSubstract: (retroId: string, groupId: string, email: string) => void;
   sendActionItem: (retroId: string, author: User, assignee: User, item: string) => void;
   removeActionItem: (retroId: string, itemId: string) => void;
-  updateActionItem: (retroId: string, itemId: string, newAssignee: User, newName: string) => void;
+  updateActionItem: (retroId: string, actionItemId: string, newAssignee: User | "unassigned", newName: string) => void;
+  updateActionAuthor: (retroId: string, actionItemId: string, newAuthor: User | "unauthored") => void;
   changeRetroStage: (
     retroId: string,
     stage: Stage,
@@ -135,7 +80,6 @@ export const RetroProvider = ({
   useEffect(() => {
     const socket = getSocket();
     function onConnect() {
-      console.log("ON CONNECT");
     }
 
     function onDisconnect() {
@@ -150,7 +94,6 @@ export const RetroProvider = ({
     }
 
     function onStorage(store: FullRetro[]) {
-      console.log("GOT STORE", store);
       const storeRecord: Record<string, FullRetro> = store.reduce((acc, retro) => {
         acc[retro.uId] = retro;
         return acc;
@@ -183,6 +126,10 @@ export const RetroProvider = ({
   }, []);
 
   const socket = getSocket();
+
+  const updateRetroInfo = (retroId: string, newName?: string, newDescription?: string) => {
+    socket.emit("updateRetroInfo", retroId, newName, newDescription);
+  };
 
   const sendIdea = (retroId: string, type: IdeaType, message: string) => {
     socket.emit("idea", retroId, type, message);
@@ -228,8 +175,12 @@ export const RetroProvider = ({
     socket.emit("removeActionItem", retroId, actionItemId);
   };
 
-  const updateActionItem = (retroId: string, actionItemId: string, newAssignee: User, newName: string) => {
+  const updateActionItem = (retroId: string, actionItemId: string, newAssignee: User | "unassigned", newName: string) => {
     socket.emit("updateActionItem", retroId, actionItemId, newAssignee, newName);
+  };
+
+  const updateActionAuthor = (retroId: string, actionItemId: string, newAuthor: User | "unauthored") => {
+    socket.emit("updateActionAuthor", retroId, actionItemId, newAuthor);
   };
 
   const sendUserData = (retroId: string, userData: UserData) => {
@@ -257,6 +208,7 @@ export const RetroProvider = ({
     <RetroContext.Provider value={{
       isLoading,
       retros,
+      updateRetroInfo,
       users,
       updStorage,
       sendUserData,
@@ -273,6 +225,7 @@ export const RetroProvider = ({
       sendActionItem,
       removeActionItem,
       updateActionItem,
+      updateActionAuthor,
       getGroup,
     }}>
       {children}

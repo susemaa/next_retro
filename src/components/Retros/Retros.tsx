@@ -37,8 +37,9 @@ const Retros: React.FC = async () => {
         <RetroLi
           key={retro.uId}
           id={retro.uId}
-          title={`created by ${retro.createdBy} at ${retro.createdAt}`}
-          items={[{ itemName: "Stage", owner: retro.stage }]}
+          title={`${retro.name ? retro.name : `created by ${retro.createdBy} on`} ${new Date(retro.createdAt * 1000).toLocaleDateString()}`}
+          // items={[{ itemName: "Stage", owner: retro.stage }]}
+          retro={retro}
         />
       ))}
       <CreateRetroButton/>

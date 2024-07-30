@@ -28,7 +28,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
       const span = document.createElement("span");
       span.style.visibility = "hidden";
       span.style.position = "absolute";
-      span.textContent = idea.idea;
+      span.textContent = `${mapRetroType(retros[id].retroType, idea.type as IdeaType).emoji} ${idea.idea}`;
       span.classList.add("p-2", "whitespace-nowrap", "max-w-xs");
       document.body.appendChild(span);
       const { width, height } = span.getBoundingClientRect();

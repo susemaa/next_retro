@@ -33,6 +33,9 @@ model Retro {
   id          Int          @id @default(autoincrement())
   uId         String       @unique @default(uuid())
   retroType   RetroType
+  votesAmount Int
+  name        String       @default("")
+  summaryMsg  String       @default("")
   stage       Stage
   createdAt   Int
   createdBy   String
@@ -40,7 +43,6 @@ model Retro {
   groups      Group[]
   everJoined  String[]
   actionItems ActionItem[]
-  // onlineUsers String[]
 }
 
 model Idea {
@@ -69,8 +71,6 @@ model User {
   name       String
   image      String
   retroUIds  String[]
-  // ActionItem ActionItem[] @relation("AssignedUser")
-  // AuthoredItems ActionItem[] @relation("Author")
 }
 
 model ActionItem {
@@ -79,7 +79,5 @@ model ActionItem {
   retroUId     String
   Retro        Retro  @relation(fields: [retroUId], references: [uId])
   assignedEmail       String
-  // assignedUser        User    @relation(fields: [assignedEmail], references: [email], name: "AssignedUser")
   authorEmail         String
-  // Author              User    @relation(fields: [authorEmail], references: [email], name: "Author")
 }

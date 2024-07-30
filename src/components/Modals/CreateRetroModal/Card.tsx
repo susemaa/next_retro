@@ -14,7 +14,7 @@ interface CardProps {
 const Card: React.FC<CardProps> = ({ title, description, additional, imageSrc, imageAlt, onClick }) => {
   return (
     <button
-      className="card card-side bg-white my-4 text-black text-left w-full"
+      className="card card-side bg-white my-6 text-black text-left w-full"
       onClick={onClick}
     >
       <figure className="w-1/5 pl-2 select-none">

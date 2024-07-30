@@ -30,7 +30,7 @@ const Voting: React.FC<Voting> = ({ id, createdBy }) => {
           }
         });
         return acc;
-      }, 3);
+      }, retros[id].votesAmount);
       setUserVotes(userVotes);
     }
   }, [data, id, retros]);

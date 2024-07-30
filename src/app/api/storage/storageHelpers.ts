@@ -17,18 +17,56 @@ export const ideaTypes = [0, 1, 2] as const;
 
 export type MsgType = "Happy" | "Sad" | "Confused" | "Start" | "Stop" | "Continue";
 
+const emotionsQ = "I was";
+const progressQ = "I want to";
+
 const map: Record<
-    RetroType, Record<IdeaType, { emoji: string; msg: MsgType }>
+    RetroType, Record<IdeaType, {
+      emoji: string;
+      msg: MsgType;
+      synonyms: string[];
+      question: string;
+    }>
   > = {
     "emotions": {
-      0: { emoji: "😊", msg: "Happy" },
-      1: { emoji: "😢", msg: "Sad" },
-      2: { emoji: "😕", msg: "Confused" }
+      0: {
+        emoji: "😊",
+        msg: "Happy",
+        synonyms: ["joyful", "content", "pleased"],
+        question: emotionsQ,
+      },
+      1: {
+        emoji: "😢",
+        msg: "Sad",
+        synonyms: ["unhappy", "sorrowful", "dejected"],
+        question: emotionsQ,
+      },
+      2: {
+        emoji: "😕",
+        msg: "Confused",
+        synonyms: ["perplexed", "baffled", "bewildered"],
+        question: emotionsQ,
+      },
     },
     "progress": {
-      0: { emoji: "🟢", msg: "Start" },
-      1: { emoji: "🔴", msg: "Stop" },
-      2: { emoji: "🟡", msg: "Continue" }
+      0: {
+        emoji: "🟢",
+        msg: "Start",
+        synonyms: ["begin", "commence", "initiate"],
+        question: progressQ,
+      },
+      1: {
+        emoji: "🔴",
+        msg: "Stop",
+        synonyms: ["halt", "cease", "terminate"],
+        question: progressQ,
+      },
+      2: {
+        emoji: "🟡",
+        msg: "Continue",
+        synonyms: ["persist", "proceed", "carry on"],
+        question: progressQ,
+      },
     }
   };
 

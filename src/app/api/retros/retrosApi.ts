@@ -22,7 +22,6 @@ export async function createRetro(request: Request) {
       everJoined: [],
       actionItems: [],
     });
-  console.log("created,", getStore());
   return NextResponse.json({ id: generatedUuid });
 }
 

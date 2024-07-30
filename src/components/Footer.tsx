@@ -30,7 +30,7 @@ const Footer: React.FC<FooterProps> = ({
 
   return (
     <div className="flex py-2 justify-between border grid grid-cols-3">
-      <div>
+      <div className="flex items-center justify-center">
         {optionalEl}
       </div>
       <div className="flex flex-col items-center justify-center text-center">

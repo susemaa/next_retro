@@ -14,6 +14,7 @@ interface ModalProps {
 
 const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
   const [loading, setLoading] = useState<string | null>(null);
+  const [counter, setCounter] = useState(3);
   const { data } = useSession();
   const { updStorage } = useRetroContext();
   const router = useRouter();
@@ -25,7 +26,10 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ retroType }),
+      body: JSON.stringify({
+        retroType,
+        votesAmount: counter,
+      }),
     })
       .then((res) => res.json())
       .then((resData) => {
@@ -46,7 +50,7 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
         <div className="modal-box">
           <h3 className="font-bold text-lg text-center">{title}</h3>
           <div className="flex items-center justify-center pt-2">
-            {loading.length === 0
+            {loading !== undefined && loading.length === 0
               ? "Creating retro, please wait..."
               : (
                 <div>
@@ -80,6 +84,25 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
           imageAlt="Traffic light"
           onClick={() => handleClick("progress")}
         />
+        <div className="text-center mt-6">
+          Group votes amount
+        </div>
+        <div className="flex justify-center items-center space-x-2">
+          <button
+            className="btn btn-outline btn-xs"
+            onClick={() => setCounter(prev => (prev - 1) || 1)}
+            disabled={counter === 1}
+          >
+            -
+          </button>
+          <span className="text-lg">{counter}</span>
+          <button
+            className="btn btn-outline btn-xs"
+            onClick={() => setCounter(prev => prev + 1)}
+          >
+            +
+          </button>
+        </div>
       </div>
       <form method="dialog" className="modal-backdrop">
         <button type="submit" className="cursor-default">

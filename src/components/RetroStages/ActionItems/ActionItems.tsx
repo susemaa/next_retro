@@ -102,6 +102,7 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
               id={iterItem.id}
               actionItem={iterItem}
               key={iterItem.id}
+              isAuthor={isAuthor}
             />
           ))}
         </div>

@@ -57,7 +57,7 @@ export default function RetroPage({ params }: { params: { retro_id: string } }) 
       {stage === "group_labeling" && <GroupLabeling id={params.retro_id} createdBy={createdBy} />}
       {stage === "voting" && <Voting id={params.retro_id} createdBy={createdBy} />}
       {stage === "action_items" && <ActionItems id={params.retro_id} createdBy={createdBy} />}
-      {stage === "finished" && <Finished id={params.retro_id} createdBy={createdBy} />}
+      {stage === "finished" && <Finished id={params.retro_id} createdBy={createdBy} retroName={retroData.name} retroSummary={retroData.summaryMsg} />}
     </>
   );
 }

@@ -18,6 +18,7 @@ const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => 
     return retros[retroId].ideas.find((idea) => idea.id === id)?.idea;
   }, [retros, retroId, id]);
   const [editing, setEditing] = useState(false);
+  const [visible, setVisible] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleRemove = () => {
@@ -39,6 +40,11 @@ const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => 
     setEditing(false);
   };
 
+  const handleDragStart = async (e: React.DragEvent<HTMLDivElement>) => {
+    onDragStart(e);
+    setVisible(false);
+  };
+
   useEffect(() => {
     if (editing && inputRef.current) {
       inputRef.current.focus();
@@ -50,7 +56,8 @@ const Idea: React.FC<IdeaProps> = ({ type, idea, id, retroId, onDragStart }) => 
     <div
       className="flex justify-between items-center border-b pb-1 border-b border-current mb-4 cursor-move"
       draggable
-      onDragStart={onDragStart}
+      onDragStart={handleDragStart}
+      onDragEnd={() => setVisible(true)}
     >
       {editing ? (
         <form id={`edit-form-${id}`} onSubmit={handleSubmit} className="flex-grow">

@@ -30,10 +30,12 @@ app.prepare().then(() => {
         }
         retro.stage = stage;
         await updateRetro(retroId, {
-          id: retro.id,
           uId: retro.uId,
           retroType: retro.retroType,
           stage: retro.stage,
+          votesAmount: retro.votesAmount,
+          name: retro.name || "",
+          summaryMsg: retro.summaryMsg || "",
           createdAt: retro.createdAt,
           createdBy: retro.createdBy,
           everJoined: retro.everJoined,
@@ -43,6 +45,31 @@ app.prepare().then(() => {
         socket.broadcast.emit("retroUpdated", retro, retroId);
       } catch {
         callback({ status: 404, error: "Retro not found" });
+      }
+    });
+
+    socket.on("updateRetroInfo", async (retroId: string, newName?: string, newDescription?: string) => {
+      const retro = await getFullRetro(retroId);
+      if (retro && (typeof newName === "string" || typeof newDescription === "string")) {
+        if (typeof newName === "string") {
+          retro.name = newName;
+        }
+        if (typeof newDescription === "string") {
+          retro.summaryMsg = newDescription;
+        }
+        await updateRetro(retroId, {
+          uId: retro.uId,
+          retroType: retro.retroType,
+          stage: retro.stage,
+          votesAmount: retro.votesAmount,
+          name: retro.name || "",
+          summaryMsg: retro.summaryMsg || "",
+          createdAt: retro.createdAt,
+          createdBy: retro.createdBy,
+          everJoined: retro.everJoined,
+        });
+        socket.emit("retroUpdated", retro, retroId);
+        socket.broadcast.emit("retroUpdated", retro, retroId);
       }
     });
 
@@ -144,7 +171,7 @@ app.prepare().then(() => {
         const group = retro.groups.find(group => group.id === groupId);
         const userEmail = retro.everJoined.find(iterEmail => iterEmail === email);
         const userVotes = retro.groups.flatMap(group => group.votes).filter(iterEmail => iterEmail === email).length;
-        if (group && userEmail && userVotes < 3) {
+        if (group && userEmail && userVotes < retro.votesAmount) {
           group.votes.push(userEmail);
           await updateGroup(groupId, group);
           socket.emit("retroUpdated", retro, retroId);
@@ -180,28 +207,35 @@ app.prepare().then(() => {
 
     socket.on("removeActionItem", async (retroId: string, actionItemId: string) => {
       const retro = await getFullRetro(retroId);
-      if (retro) {
-        const actionItemIndex = retro.actionItems.findIndex(item => item.id === actionItemId);
-        if (actionItemIndex !== -1) {
-          await deleteActionItem(actionItemId);
-          retro.actionItems.splice(actionItemIndex, 1);
-          socket.emit("retroUpdated", retro, retroId);
-          socket.broadcast.emit("retroUpdated", retro, retroId);
-        }
+      const actionItemIndex = retro?.actionItems.findIndex(item => item.id === actionItemId);
+      if (retro && actionItemIndex && actionItemIndex !== -1) {
+        await deleteActionItem(actionItemId);
+        retro.actionItems.splice(actionItemIndex, 1);
+        socket.emit("retroUpdated", retro, retroId);
+        socket.broadcast.emit("retroUpdated", retro, retroId);
       }
     });
 
-    socket.on("updateActionItem", async (retroId: string, actionItemId: string, newAssignee: User, newName: string) => {
+    socket.on("updateActionItem", async (retroId: string, actionItemId: string, newAssignee: User | "unassigned", newName: string) => {
       const retro = await getFullRetro(retroId);
-      if (retro) {
-        const actionItem = retro.actionItems.find(item => item.id === actionItemId);
-        if (actionItem) {
-          actionItem.assignedEmail = newAssignee.email;
-          actionItem.name = newName;
-          await updateActionItem(actionItemId, actionItem);
-          socket.emit("retroUpdated", retro, retroId);
-          socket.broadcast.emit("retroUpdated", retro, retroId);
-        }
+      const actionItem = retro?.actionItems.find(item => item.id === actionItemId);
+      if (retro && actionItem) {
+        actionItem.assignedEmail = typeof newAssignee === "string" ? newAssignee : newAssignee.email;
+        actionItem.name = newName;
+        await updateActionItem(actionItemId, actionItem);
+        socket.emit("retroUpdated", retro, retroId);
+        socket.broadcast.emit("retroUpdated", retro, retroId);
+      }
+    });
+
+    socket.on("updateActionAuthor", async (retroId: string, actionItemId: string, newAuthor: User | "unauthored") => {
+      const retro = await getFullRetro(retroId);
+      const actionItem = retro?.actionItems.find(item => item.id === actionItemId);
+      if (retro && actionItem) {
+        actionItem.authorEmail = typeof newAuthor === "string" ? newAuthor : newAuthor.email;
+        await updateActionItem(actionItemId, actionItem);
+        socket.emit("retroUpdated", retro, retroId);
+        socket.broadcast.emit("retroUpdated", retro, retroId);
       }
     });
 
@@ -270,11 +304,7 @@ app.prepare().then(() => {
           break;
         }
       }
-      console.log("SERVER: disconnected");
     });
-    // socket.emit("storage", getStore());
-    // socket.emit("storage", getFullStore());
-    console.log("SERVER: connected");
   });
 
   httpServer

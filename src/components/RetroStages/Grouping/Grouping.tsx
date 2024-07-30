@@ -8,6 +8,7 @@ import useAuthor from "@/hooks/useAuthor";
 import { Idea as IdeaInterface } from "@prisma/client";
 import Draggable from "./Draggable";
 import Footer from "../../Footer";
+import { IdeaType, mapRetroType } from "@/app/api/storage/storageHelpers";
 
 interface Grouping {
   id: string;
@@ -191,7 +192,8 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
             retros[id].ideas.map((iterIdea) => (
               <Draggable
                 key={iterIdea.id}
-                idea={iterIdea.idea}
+                // idea={iterIdea.idea}
+                idea={`${mapRetroType(retros[id].retroType, iterIdea.type as IdeaType).emoji} ${iterIdea.idea}`}
                 ideaId={iterIdea.id}
                 left={draggingIdea?.id === iterIdea.id ? newPosition.x : iterIdea.x}
                 top={draggingIdea?.id === iterIdea.id ? newPosition.y : iterIdea.y}

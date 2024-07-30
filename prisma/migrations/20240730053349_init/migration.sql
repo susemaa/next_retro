@@ -9,6 +9,7 @@ CREATE TABLE "Retro" (
     "id" SERIAL NOT NULL,
     "uId" TEXT NOT NULL,
     "retroType" "RetroType" NOT NULL,
+    "votesAmount" INTEGER NOT NULL,
     "stage" "Stage" NOT NULL,
     "createdAt" INTEGER NOT NULL,
     "createdBy" TEXT NOT NULL,
