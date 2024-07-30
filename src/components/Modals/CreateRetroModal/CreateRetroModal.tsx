@@ -38,7 +38,7 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
         router.push(`/retros/${resData.id}`);
       })
       .catch((err) => {
-        console.error("Failed to fetch /api/retros", err);
+        console.error("Failed to fetch /api/storage", err);
         notify("error", "Couldn't create retro, try again later", document.getElementById("create_retro_modal"));
         setLoading(null);
       });
