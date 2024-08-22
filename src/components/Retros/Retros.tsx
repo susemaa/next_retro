@@ -1,29 +1,22 @@
+"use server";
 import { getServerSession } from "next-auth";
 import RetroLi from "./RetroLi";
-import { FullRetro } from "@/app/api/storage/storage";
+import { addUser, FullRetro, getFullStore, getUser } from "@/app/api/storage/storage";
 import { CreateRetroModal } from "../Modals";
 import CreateRetroButton from "@/components/Retros/CreateRetroButton";
+import { authOptions } from "@/app/api/auth/[...nextauth]/nextAuth";
 
 async function getRetros(): Promise<FullRetro[]> {
-  const session = await getServerSession();
-  if (!session) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.email) {
     return [];
   }
-  await fetch(new URL(`/api/storage/user/${session.user?.email}`, "http://localhost:3000"), {
-    method: "POST",
-    body: JSON.stringify({
-      session,
-    }),
-  });
-  const res = await fetch(new URL("/api/storage", "http://localhost:3000"), {
-    method: "GET",
-    headers: {
-      "email": session.user?.email || "",
-    },
-    cache: "no-store"
-  });
-  const data = await res.json();
-  return data.retros;
+  const user = await getUser(session.user.email);
+  if (!user) {
+    await addUser(session.user.email, session.user.name || "", session.user.image || "");
+  }
+  const store = await getFullStore(session.user.email);
+  return store;
 }
 
 const Retros: React.FC = async () => {
