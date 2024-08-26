@@ -32,7 +32,7 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
       return acc;
     }, {} as { [key: string]: string });
 
-    fetch(new URL("/api/mailer", process.env.NEXTAUTH_URL), {
+    fetch(new URL("/api/mailer", "https://retro.gdao.one"), {
       method: "POST",
       body: JSON.stringify({
         to: retro.everJoined,

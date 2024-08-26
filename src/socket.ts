@@ -8,7 +8,7 @@ let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    socket = io("http://retro.gdao.one");
+    socket = io("https://retro.gdao.one");
   }
   return socket;
 };
