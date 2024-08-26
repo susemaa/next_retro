@@ -29,7 +29,7 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
       span.style.visibility = "hidden";
       span.style.position = "absolute";
       span.textContent = `${mapRetroType(retros[id].retroType, idea.type as IdeaType).emoji} ${idea.idea}`;
-      span.classList.add("p-2", "whitespace-nowrap", "max-w-xs");
+      span.classList.add("p-2", "max-w-xs");
       document.body.appendChild(span);
       const { width, height } = span.getBoundingClientRect();
       document.body.removeChild(span);
@@ -41,19 +41,29 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
     let heightest = -1;
     let counter = 1;
 
-    const positioned: Idea[] = ideas.map((idea) => {
+    // const { totalWidth, totalHeight } = ideas.reduce((acc, idea) => {
+    //   const { width, height } = getDimensions(idea);
+    //   return {
+    //     totalHeight: acc.totalHeight + height,
+    //     totalWidth: acc.totalWidth + width,
+    //   };
+    // }, { totalHeight: 0, totalWidth: 0 });
+    // const rowWidth = Math.sqrt(totalWidth * totalHeight);
+    const padding = 10;
+
+    const positioned: Idea[] = ideas.map((idea, index) => {
       const { width, height } = getDimensions(idea);
       idea.x = xOffset;
       idea.y = yOffset;
       idea.z = counter;
       if (xOffset < 1000) {
-        xOffset += width + 10;
+        xOffset += width + padding;
         if (height > heightest) {
           heightest = height;
         }
       } else {
         xOffset = 0;
-        yOffset += heightest + 10;
+        yOffset += heightest + padding;
         heightest = -1;
       }
       counter += 1;

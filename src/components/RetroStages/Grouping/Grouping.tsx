@@ -17,39 +17,44 @@ interface Grouping {
 
 const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
   const isAuthor = useAuthor(createdBy);
-  const { initGroups, changeRetroStage, retros, updatePosition } = useRetroContext();
+  const { initGroups, changeRetroStage, retros, updatePosition, updatePositions } = useRetroContext();
   const draggableParent = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [newPosition, setNewPosition] = useState({ x: 0, y: 0 });
   const [draggingIdea, setDraggingIdea] = useState<IdeaInterface | null>(null);
+  const [draggingGroup, setDraggingGroup] = useState<number | null>(null);
   const [ideas, setIdeas] = useState<IdeaInterface[]>(retros[id].ideas);
   const [scale, setScale] = useState({ x: 1, y: 1 });
   const [groups, setGroup] = useState<Record<string, number>>({});
 
+  const [lastTouch, setLastTouch] = useState<{ x: number; y: number } | null>(null);
+
   useEffect(() => {
     if (draggableParent.current && retros[id]) {
-      const parentRect = draggableParent.current.getBoundingClientRect();
-      const { maxX, maxY } = retros[id].ideas.reduce(
-        (acc, idea) => {
-          const el = document.getElementById(idea.id);
-          if (el) {
-            const elWidth = el.clientWidth;
-            const elHeight = el.clientHeight;
-            if (idea.x + elWidth > acc.maxX) {
-              acc.maxX = idea.x + elWidth;
-            }
-            if (idea.y + elHeight > acc.maxY) {
-              acc.maxY = idea.y + elHeight;
-            }
-          }
-          return acc;
-        },
-        { maxX: 0, maxY: 0 }
-      );
+      // const parentRect = draggableParent.current.getBoundingClientRect();
+      // const { maxX, maxY } = retros[id].ideas.reduce(
+      //   (acc, idea) => {
+      //     const el = document.getElementById(idea.id);
+      //     if (el) {
+      //       const elWidth = el.clientWidth;
+      //       const elHeight = el.clientHeight;
+      //       if (idea.x + elWidth > acc.maxX) {
+      //         acc.maxX = idea.x + elWidth;
+      //       }
+      //       if (idea.y + elHeight > acc.maxY) {
+      //         acc.maxY = idea.y + elHeight;
+      //       }
+      //     }
+      //     return acc;
+      //   },
+      //   { maxX: 0, maxY: 0 }
+      // );
 
-      const scaleX = maxX > parentRect.width ? parentRect.width / maxX : 1;
-      const scaleY = maxY > parentRect.height ? parentRect.height / maxY : 1;
+      // const scaleX = maxX > parentRect.width ? parentRect.width / maxX : 1;
+      // const scaleY = maxY > parentRect.height ? parentRect.height / maxY : 1;
+      const scaleX = 1;
+      const scaleY = 1;
       setScale({ x: scaleX, y: scaleY });
     }
   }, [retros, id, draggableParent]);
@@ -64,7 +69,7 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
   };
 
   useEffect(() => {
-    if (!ideas) {
+    if (!ideas || draggingGroup) {
       return;
     }
     const ideasRects: Record<string, DOMRect> = {};
@@ -112,7 +117,7 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
     });
 
     setGroup(newGroups);
-  }, [ideas, draggingIdea, newPosition]);
+  }, [ideas, draggingIdea, newPosition, draggingGroup]);
 
   useEffect(() => {
     setIdeas(retros[id].ideas);
@@ -151,31 +156,94 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
   const handleMouseMove = (e: React.MouseEvent<HTMLSpanElement>) => {
     if (draggingIdea && draggableParent.current) {
       const parentRect = draggableParent.current.getBoundingClientRect();
-      const newX = (e.clientX - parentRect.left - offset.x) / scale.x;
-      const newY = (e.clientY - parentRect.top - offset.y) / scale.y;
+      const scrollTop = draggableParent.current.scrollTop;
+      const scrollLeft = draggableParent.current.scrollLeft;
+      const newX = (e.clientX - parentRect.left + scrollLeft - offset.x) / scale.x;
+      const newY = (e.clientY - parentRect.top + scrollTop - offset.y) / scale.y;
       setNewPosition({ x: newX, y: newY });
+    } else if (lastTouch && draggableParent.current) {
+      const deltaX = e.clientX - lastTouch.x;
+      const deltaY = e.clientY - lastTouch.y;
+
+      draggableParent.current.scrollLeft -= deltaX;
+      draggableParent.current.scrollTop -= deltaY;
+
+      setLastTouch({ x: e.clientX, y: e.clientY });
     }
   };
 
-  const handleMouseDown = (idea: IdeaInterface) => (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
+  const handleMouseDownDraggable = (idea: IdeaInterface) => (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
     if (e.currentTarget && draggableParent.current) {
       const rect = e.currentTarget.getBoundingClientRect();
       const parentRect = draggableParent.current.getBoundingClientRect();
+      const scrollTop = draggableParent.current.scrollTop;
+      const scrollLeft = draggableParent.current.scrollLeft;
       const xOffset = e.clientX - rect.left;
       const yOffset = e.clientY - rect.top;
-      const newX = (e.clientX - parentRect.left - xOffset) / scale.x;
-      const newY = (e.clientY - parentRect.top - yOffset) / scale.y;
+      const newX = (e.clientX - parentRect.left + scrollLeft - xOffset) / scale.x;
+      const newY = (e.clientY - parentRect.top + scrollTop - yOffset) / scale.y;
       setOffset({ x: xOffset , y: yOffset });
       setNewPosition({ x: newX, y: newY });
       setDraggingIdea(idea);
+
+      if ((e.ctrlKey || e.metaKey) && isAuthor) {
+        const groupNumber = groups[idea.id];
+        setDraggingGroup(groupNumber);
+      }
     }
   };
 
   const handleMouseUp = () => {
     if (draggingIdea) {
-      updatePosition(id, draggingIdea.id, newPosition);
+      if (draggingGroup !== null) {
+        const newPositions: Record<string, { x: number; y: number }> = {};
+        ideas.forEach((idea) => {
+          if (groups[idea.id] === draggingGroup) {
+            const newGroupPosition = {
+              x: idea.x + (newPosition.x - draggingIdea!.x),
+              y: idea.y + (newPosition.y - draggingIdea!.y),
+            };
+            newPositions[idea.id] = newGroupPosition;
+          }
+        });
+        updatePositions(id, newPositions);
+      } else {
+        updatePosition(id, draggingIdea!.id, newPosition);
+      }
       setDraggingIdea(null);
+      setDraggingGroup(null);
+    } else {
+      setLastTouch(null);
     }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setLastTouch({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setLastTouch({ x: touch.clientX, y: touch.clientY });
+    }
+
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1 && lastTouch && draggableParent.current) {
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - lastTouch.x;
+      const deltaY = touch.clientY - lastTouch.y;
+
+      draggableParent.current.scrollLeft -= deltaX;
+      draggableParent.current.scrollTop -= deltaY;
+
+      setLastTouch({ x: touch.clientX, y: touch.clientY });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setLastTouch(null);
   };
 
   return (
@@ -186,24 +254,50 @@ const Grouping: React.FC<Grouping> = ({ id, createdBy }) => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          className="flex-grow relative"
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="flex-grow relative overflow-y-auto overflow-x-auto"
+          style={{
+            "cursor": draggingIdea
+              ? "move"
+              : lastTouch
+                ? "grabbing"
+                : "grab",
+            touchAction: "none",
+          }}
         >
           {retros[id] &&
             retros[id].ideas.map((iterIdea) => (
               <Draggable
                 key={iterIdea.id}
-                // idea={iterIdea.idea}
                 idea={`${mapRetroType(retros[id].retroType, iterIdea.type as IdeaType).emoji} ${iterIdea.idea}`}
                 ideaId={iterIdea.id}
-                left={draggingIdea?.id === iterIdea.id ? newPosition.x : iterIdea.x}
-                top={draggingIdea?.id === iterIdea.id ? newPosition.y : iterIdea.y}
+                left={
+                  draggingIdea?.id === iterIdea.id
+                    ? newPosition.x
+                    : draggingGroup !== null && groups[iterIdea.id] === draggingGroup
+                      ? iterIdea.x + (newPosition.x - draggingIdea!.x)
+                      : iterIdea.x
+                }
+                top={
+                  draggingIdea?.id === iterIdea.id
+                    ? newPosition.y
+                    : draggingGroup !== null && groups[iterIdea.id] === draggingGroup
+                      ? iterIdea.y + (newPosition.y - draggingIdea!.y)
+                      : iterIdea.y
+                }
                 zIndex={iterIdea.z}
-                onMouseDown={handleMouseDown(iterIdea)}
+                onMouseDown={handleMouseDownDraggable(iterIdea)}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 scale={scale}
                 groupNumber={groups[iterIdea.id]}
-                isDragging={draggingIdea?.id === iterIdea.id}
+                isDragging={
+                  draggingIdea?.id === iterIdea.id ||
+                  (draggingGroup !== null && groups[iterIdea.id] === draggingGroup)
+                }
               />
             ))}
         </div>

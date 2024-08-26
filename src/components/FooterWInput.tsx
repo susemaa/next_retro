@@ -46,7 +46,7 @@ const FooterWInput = forwardRef<HTMLInputElement, FooterWInputProps>(({
           className="input input-bordered w-full mb-2 md:mb-0 md:mx-4"
           placeholder="Enter your message"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => setMessage(e.target.value.slice(0, 255))}
         />
         <button
           type="submit"

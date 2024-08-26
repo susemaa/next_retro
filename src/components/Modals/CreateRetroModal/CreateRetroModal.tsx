@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState } from "react";
+import { memo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -15,6 +15,7 @@ interface ModalProps {
 const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
   const [loading, setLoading] = useState<string | null>(null);
   const [counter, setCounter] = useState(3);
+  const checkboxRef = useRef<HTMLInputElement>(null);
   const { data } = useSession();
   const { updStorage } = useRetroContext();
   const router = useRouter();
@@ -29,6 +30,7 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
       body: JSON.stringify({
         retroType,
         votesAmount: counter,
+        canUsersLabelGroups: checkboxRef.current?.checked,
       }),
     })
       .then((res) => res.json())
@@ -102,6 +104,12 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
           >
             +
           </button>
+        </div>
+        <div className="form-control mt-4">
+          <label className="label cursor-pointer">
+            <span className="label-text">All Users Can Label Groups</span>
+            <input ref={checkboxRef} type="checkbox" className="checkbox checkbox-primary" defaultChecked />
+          </label>
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
