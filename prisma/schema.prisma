@@ -34,6 +34,7 @@ model Retro {
   uId         String       @unique @default(uuid())
   retroType   RetroType
   votesAmount Int
+  canUsersLabelGroups Boolean @default(true)
   name        String       @default("")
   summaryMsg  String       @default("")
   stage       Stage

@@ -9,11 +9,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ status: 401, error: "Unauthorized" });
   }
   try {
-    const { retroType, votesAmount } = await req.json();
+    const { retroType, votesAmount, canUsersLabelGroups } = await req.json();
     if (!(retroType in RetroType)) {
       return NextResponse.json({ status: 400, error: "Invalid retro type" });
     }
-    const retro = await createRetro(token.email, retroType, votesAmount);
+    const retro = await createRetro(token.email, retroType, votesAmount, canUsersLabelGroups);
     return NextResponse.json({ status: 200, message: `successfully created ${retro.uId}`, id: retro.uId });
   } catch (error) {
     console.error("Error sending email:", error);

@@ -22,19 +22,23 @@ async function getRetros(): Promise<FullRetro[]> {
 const Retros: React.FC = async () => {
   const retros = await getRetros();
   return (
-    <main className="flex-grow flex flex-col p-8 h-full">
+    <main className="flex flex-grow flex-col p-8 h-full">
       <h1 className="text-2xl font-bold mb-4 border-b pb-2 inline-block border-current">
         My Retros
       </h1>
-      {retros?.map((retro) => (
-        <RetroLi
-          key={retro.uId}
-          id={retro.uId}
-          title={`${retro.name ? retro.name : `created by ${retro.createdBy} on`} ${new Date(retro.createdAt * 1000).toLocaleDateString()}`}
-          // items={[{ itemName: "Stage", owner: retro.stage }]}
-          retro={retro}
-        />
-      ))}
+      <ul
+        className="grow"
+      >
+        {retros?.map((retro) => (
+          <RetroLi
+            key={retro.uId}
+            id={retro.uId}
+            title={`${retro.name ? retro.name : `created by ${retro.createdBy} on`} ${new Date(retro.createdAt * 1000).toLocaleDateString()}`}
+            // items={[{ itemName: "Stage", owner: retro.stage }]}
+            retro={retro}
+          />
+        ))}
+      </ul>
       <CreateRetroButton/>
       <CreateRetroModal title="Select Format" />
     </main>

@@ -50,6 +50,7 @@ interface RetroContextType {
   initGroups: (retroId: string, groups: Record<string, string[]>, callback: InitGroupsCallback) => void;
   updateGroupName: (retroId: string, groupId: string, newName: string) => void;
   updatePosition: (retroId: string, ideaId: string, newPosition: { x: number; y : number }) => void;
+  updatePositions: (retroId: string, positions: Record<string, { x: number; y: number }>) => void;
   voteAdd: (retroId: string, groupId: string, email: string) => void;
   voteSubstract: (retroId: string, groupId: string, email: string) => void;
   sendActionItem: (retroId: string, author: User, assignee: User, item: string) => void;
@@ -151,6 +152,10 @@ export const RetroProvider = ({
     socket.emit("updatePosition", retroId, ideaId, newPosition);
   };
 
+  const updatePositions = (retroId: string, positions: Record<string, { x: number; y: number }>) => {
+    socket.emit("updatePositions", retroId, positions);
+  };
+
   const initGroups = (retroId: string, groups: Record<string, string[]>, callback: InitGroupsCallback) => {
     socket.emit("initGroups", retroId, groups, callback);
   };
@@ -218,6 +223,7 @@ export const RetroProvider = ({
       updateIdea,
       initPositions,
       updatePosition,
+      updatePositions,
       initGroups,
       updateGroupName,
       voteAdd,
