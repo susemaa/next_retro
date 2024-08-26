@@ -1,9 +1,11 @@
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
+import { FullRetro } from "../storage/storage";
+import { generateSummaryHTML } from "@/components/RetroStages/Finished/generateSummaryHTML";
 
 export async function sendMail(request: Request) {
 
-  const { to, subject, text } = await request.json();
+  const { to, subject, retro } = await request.json();
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -13,14 +15,14 @@ export async function sendMail(request: Request) {
     }
   });
 
-  const mailOptions = {
-    from: process.env.GMAIL_EMAIL,
-    to: to.join(", "),
-    subject,
-    text,
-  };
-
   try {
+    const typedRetro = retro as FullRetro;
+    const mailOptions = {
+      from: process.env.GMAIL_EMAIL,
+      bcc: to.join(", "),
+      subject,
+      html: `<div>Summary of http://localhost:3000/retros/${typedRetro.uId}</div>`.concat(generateSummaryHTML(typedRetro)),
+    };
     await transporter.sendMail(mailOptions);
     return NextResponse.json({ status: 200, message: `Email sent to ${to}` });
   } catch (error) {

@@ -72,7 +72,12 @@ export async function getFullRetro(uId) {
   };
 }
 
-export async function createRetro(createdBy, retroType, votesAmount) {
+export async function createRetro(
+  createdBy,
+  retroType,
+  votesAmount,
+  canUsersLabelGroups = true,
+) {
   const uId = uuid();
   const stage = "lobby";
   return await prisma.retro.upsert({
@@ -83,6 +88,7 @@ export async function createRetro(createdBy, retroType, votesAmount) {
       retroType,
       stage,
       createdBy,
+      canUsersLabelGroups,
       createdAt: Math.floor(Date.now() / 1000),
       votesAmount,
       everJoined: [],

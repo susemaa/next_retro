@@ -141,6 +141,21 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on("updatePositions", async (retroId: string, positions: Record<string, { x: number; y: number }>) => {
+      const retro = await getFullRetro(retroId);
+      if (retro) {
+        retro.ideas.forEach(async (idea) => {
+          if (positions[idea.id]) {
+            idea.x = positions[idea.id].x;
+            idea.y = positions[idea.id].y;
+            await updateIdea(idea.id, idea);
+          }
+        });
+        socket.emit("retroUpdated", retro, retroId);
+        socket.broadcast.emit("retroUpdated", retro, retroId);
+      }
+    });
+
     socket.on("initGroups", async (retroId: string, groups: Record<string, string[]>, cb: InitGroupsCallback) => {
       const retro = await getRetro(retroId);
       if (retro) {

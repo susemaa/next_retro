@@ -1,5 +1,5 @@
 "use client";
-import React, { memo, useState, useRef } from "react";
+import React, { memo, useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { notify } from "@/helpers";
 import { useRetroContext } from "@/contexts/RetroContext";
@@ -41,6 +41,7 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
           .map(item =>
             `${item.name} (${mapEmails[item.assignedEmail]})`)
           .join("\n"),
+        retro,
       }),
     });
 
@@ -77,7 +78,7 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
       <main className="flex-grow flex h-full pt-4 overflow-y-scroll">
         <div className="flex flex-col w-1/2 md:w-2/3 lg:w-3/4 mx-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {retros[id].groups.map((group) => (
+            {retros[id].groups.sort((ga, gb) => gb.votes.length - ga.votes.length).map((group) => (
               <GroupVoted
                 key={group.id}
                 groupId={group.id}

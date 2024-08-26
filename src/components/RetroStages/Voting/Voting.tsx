@@ -8,6 +8,7 @@ import WelcomeModal from "../../Modals/WelcomeModal";
 import useAuthor from "@/hooks/useAuthor";
 import Footer from "../../Footer";
 import GroupVoting from "./GroupVoting";
+import { User } from "@prisma/client";
 
 interface Voting {
   id: string;
@@ -20,6 +21,24 @@ const Voting: React.FC<Voting> = ({ id, createdBy }) => {
   const [loading, setLoading] = useState(false);
   const { changeRetroStage, retros } = useRetroContext();
   const [userVotes, setUserVotes] = useState(-1);
+
+  const [finishedUsers, setFinishedUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    const finishedUsers = retros[id].everJoinedUsers.map((user) => {
+      const votesLeft = retros[id].groups.reduce((acc, group) => {
+        group.votes.forEach(vote => {
+          if (vote === user.email) {
+            acc -= 1;
+          }
+        });
+        return acc;
+      }, retros[id].votesAmount);
+      return votesLeft === 0 ? user : null;
+    }).filter(user => !!user);
+
+    setFinishedUsers(finishedUsers);
+  }, [data, id, retros]);
 
   useEffect(() => {
     if (data && data.user && data.user.email) {
@@ -66,6 +85,23 @@ const Voting: React.FC<Voting> = ({ id, createdBy }) => {
         title={userVotes + ""}
         caption="Votes Left"
         buttonTag="Action Items"
+        optionalEl={
+          <div className="w-full flex flex-col justify-center items-center">
+            <div className="text-center mb-2">Finished Users</div>
+            <div className="tooltip w-full h-full" data-tip={finishedUsers.length === retros[id].everJoinedUsers.length
+              ? "Everyone finished"
+              : `Not finished: ${retros[id].everJoinedUsers
+                .filter(user => !finishedUsers.includes(user))
+                .map(user => user.name)
+                .join(", ")}`}>
+              <progress
+                className="progress progress-primary w-3/4 h-4"
+                value={finishedUsers.length}
+                max={retros[id].everJoinedUsers.length}>
+              </progress>
+            </div>
+          </div>
+        }
       />
       <ConfirmModal
         message="Is your team satisfied with their votes?"
