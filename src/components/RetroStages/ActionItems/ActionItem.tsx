@@ -6,7 +6,7 @@ import useSocketValue from "@/hooks/useSocketValue";
 
 interface ActionItemProps {
   actionItem: ActionItemInterface;
-  id: string;
+  id: number;
   retroId: string;
   isAuthor: boolean;
   finished?: boolean;
