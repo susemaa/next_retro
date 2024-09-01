@@ -39,6 +39,7 @@ app.prepare().then(() => {
           createdAt: retro.createdAt,
           createdBy: retro.createdBy,
           everJoined: retro.everJoined,
+          canUsersLabelGroups: retro.canUsersLabelGroups,
         });
         callback({ status: 200, retro });
         socket.emit("retroUpdated", retro, retroId);
@@ -67,6 +68,7 @@ app.prepare().then(() => {
           createdAt: retro.createdAt,
           createdBy: retro.createdBy,
           everJoined: retro.everJoined,
+          canUsersLabelGroups: retro.canUsersLabelGroups,
         });
         socket.emit("retroUpdated", retro, retroId);
         socket.broadcast.emit("retroUpdated", retro, retroId);
