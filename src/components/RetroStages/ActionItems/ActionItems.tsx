@@ -97,7 +97,7 @@ const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
           >
             🚀 Action Items
           </div>
-          {retros[id] && retros[id].actionItems.map((iterItem) => (
+          {retros[id] && retros[id].actionItems.sort((a, b) => a.id - b.id).map((iterItem) => (
             <ActionItem
               retroId={id}
               id={iterItem.id}

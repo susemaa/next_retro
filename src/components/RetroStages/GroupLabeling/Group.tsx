@@ -3,16 +3,26 @@ import { useRetroContext } from "@/contexts/RetroContext";
 import useSocketValue from "@/hooks/useSocketValue";
 import { mapRetroType, IdeaType } from "@/app/api/storage/storageHelpers";
 import useAuthor from "@/hooks/useAuthor";
+import { Idea } from "@prisma/client";
 
 interface GroupProps {
   retroId: string;
   groupId: string;
   name: string;
   ideaIds: string[];
+  draggingIdea: Idea | null;
+  setDraggingIdea: React.Dispatch<React.SetStateAction<Idea | null>>
 }
 
-const Group: React.FC<GroupProps> = ({ retroId, groupId, name, ideaIds }) => {
-  const { retros, updateGroupName } = useRetroContext();
+const Group: React.FC<GroupProps> = ({
+  retroId,
+  groupId,
+  name,
+  ideaIds,
+  draggingIdea,
+  setDraggingIdea,
+}) => {
+  const { retros, updateGroupName, changeIdeaGroup } = useRetroContext();
   const author = useAuthor(retros[retroId].createdBy);
   const canModify = author || retros[retroId].canUsersLabelGroups;
   const [currentName, setCurrentName] = useSocketValue(() => {
@@ -36,8 +46,39 @@ const Group: React.FC<GroupProps> = ({ retroId, groupId, name, ideaIds }) => {
     }, 750));
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.classList.add("drag-over");
+  };
+
+  const handleDrop = (groupId: string) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("drag-over");
+    if (draggingIdea) {
+      changeIdeaGroup(retroId, draggingIdea.id, groupId);
+      setDraggingIdea(null);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.currentTarget.classList.remove("drag-over");
+  };
+
+  const handleIdeaDragStart = (idea: Idea) => (e: React.DragEvent<HTMLDivElement>) => {
+    if (author) {
+      setDraggingIdea(idea);
+    }
+  };
+
   return (
-    <div key={groupId} className="bg-base-100 shadow-2xl p-4 flex flex-col max-h-80">
+    <div
+      id={`group_${groupId}`}
+      key={groupId}
+      className="bg-base-100 shadow-2xl p-4 flex flex-col max-h-80"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop(groupId)}
+      onDragLeave={handleDragLeave}
+    >
       <div className="flex justify-center relative mb-4">
         {canModify ? (
           <input
@@ -76,7 +117,12 @@ const Group: React.FC<GroupProps> = ({ retroId, groupId, name, ideaIds }) => {
         {retros[retroId] && retros[retroId].ideas.map((idea) => {
           if (ideaIds.includes(idea.id)) {
             return (
-              <div key={idea.id} className="flex items-center mb-2 border-b pb-1 border-current">
+              <div
+                key={idea.id}
+                className="flex items-center mb-2 border-b pb-1 border-current"
+                draggable
+                onDragStart={handleIdeaDragStart(idea)}
+              >
                 <span className="mr-2">
                   {mapRetroType(retros[retroId].retroType, idea.type as IdeaType).emoji}
                 </span>

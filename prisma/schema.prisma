@@ -75,7 +75,7 @@ model User {
 }
 
 model ActionItem {
-  id           String @id @default(uuid())
+  id           Int    @id @default(autoincrement())
   name         String
   retroUId     String
   Retro        Retro  @relation(fields: [retroUId], references: [uId])

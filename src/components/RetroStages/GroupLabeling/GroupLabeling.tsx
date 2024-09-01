@@ -6,6 +6,7 @@ import { notify } from "@/helpers";
 import useAuthor from "@/hooks/useAuthor";
 import Group from "./Group";
 import Footer from "../../Footer";
+import { Idea } from "@prisma/client";
 
 interface GroupLabeling {
   id: string;
@@ -16,6 +17,7 @@ const GroupLabeling: React.FC<GroupLabeling> = ({ id, createdBy }) => {
   const isAuthor = useAuthor(createdBy);
   const [loading, setLoading] = useState(false);
   const { changeRetroStage, retros } = useRetroContext();
+  const [draggingIdea, setDraggingIdea] = useState<Idea | null>(null);
 
   const handleConfirm = () => {
     setLoading(true);
@@ -39,6 +41,8 @@ const GroupLabeling: React.FC<GroupLabeling> = ({ id, createdBy }) => {
               retroId={id}
               ideaIds={group.ideas}
               name={group.name}
+              draggingIdea={draggingIdea}
+              setDraggingIdea={setDraggingIdea}
             />
           ))}
         </div>

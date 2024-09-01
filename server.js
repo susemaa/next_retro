@@ -50,6 +50,7 @@ app.prepare().then(() => {
           createdAt: retro.createdAt,
           createdBy: retro.createdBy,
           everJoined: retro.everJoined,
+          canUsersLabelGroups: retro.canUsersLabelGroups,
         });
         callback({ status: 200, retro });
         socket.emit("retroUpdated", retro, retroId);
@@ -78,6 +79,7 @@ app.prepare().then(() => {
           createdAt: retro.createdAt,
           createdBy: retro.createdBy,
           everJoined: retro.everJoined,
+          canUsersLabelGroups: retro.canUsersLabelGroups,
         });
         socket.emit("retroUpdated", retro, retroId);
         socket.broadcast.emit("retroUpdated", retro, retroId);
@@ -191,6 +193,23 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on("changeIdeaGroup", async (retroId, ideaId, newGroupId) => {
+      const retro = await getFullRetro(retroId);
+      if (retro) {
+        const currentGroup = retro.groups.find(group => group.ideas.includes(ideaId));
+        const newGroup = retro.groups.find(group => group.id === newGroupId);
+        if (currentGroup && newGroup) {
+          currentGroup.ideas = currentGroup.ideas.filter(id => id !== ideaId);
+          await updateGroup(currentGroup.id, currentGroup);
+          newGroup.ideas.push(ideaId);
+          await updateGroup(newGroupId, newGroup);
+        }
+
+        socket.emit("retroUpdated", retro, retroId);
+        socket.broadcast.emit("retroUpdated", retro, retroId);
+      }
+    });
+
     socket.on("voteAdd", async (retroId, groupId, email) => {
       const retro = await getFullRetro(retroId);
       if (retro) {
@@ -234,7 +253,7 @@ app.prepare().then(() => {
     socket.on("removeActionItem", async (retroId, actionItemId) => {
       const retro = await getFullRetro(retroId);
       const actionItemIndex = retro?.actionItems.findIndex(item => item.id === actionItemId);
-      if (retro && actionItemIndex && actionItemIndex !== -1) {
+      if (retro && actionItemIndex !== undefined && actionItemIndex !== -1) {
         await deleteActionItem(actionItemId);
         retro.actionItems.splice(actionItemIndex, 1);
         socket.emit("retroUpdated", retro, retroId);

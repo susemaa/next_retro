@@ -100,6 +100,22 @@ const IdeaGeneration: React.FC<IdeaGeneration> = ({ id, createdBy }) => {
 
   const handleDragStart = (idea: Idea) => (e: React.DragEvent<HTMLDivElement>) => {
     setDraggingIdea(idea);
+
+    const el = document.createElement("div");
+    const spanText = document.createElement("span");
+    el.className = "flex justify-between items-center absolute top-[9999px] left-[9999px]";
+    spanText.className = "whitespace-nowrap overflow-x-auto";
+    spanText.textContent = idea.idea;
+    el.appendChild(spanText);
+    document.body.appendChild(el);
+
+    e.dataTransfer.setDragImage(el,
+      e.clientX - e.currentTarget.getBoundingClientRect().left,
+      e.clientY - e.currentTarget.getBoundingClientRect().top
+    );
+    setTimeout(() => {
+      document.body.removeChild(el);
+    }, 0);
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
