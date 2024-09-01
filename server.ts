@@ -182,6 +182,23 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on("changeIdeaGroup", async (retroId: string, ideaId: string, newGroupId: string) => {
+      const retro = await getFullRetro(retroId);
+      if (retro) {
+        const currentGroup = retro.groups.find(group => group.ideas.includes(ideaId));
+        const newGroup = retro.groups.find(group => group.id === newGroupId);
+        if (currentGroup && newGroup) {
+          currentGroup.ideas = currentGroup.ideas.filter(id => id !== ideaId);
+          await updateGroup(currentGroup.id, currentGroup);
+          newGroup.ideas.push(ideaId);
+          await updateGroup(newGroupId, newGroup);
+        }
+
+        socket.emit("retroUpdated", retro, retroId);
+        socket.broadcast.emit("retroUpdated", retro, retroId);
+      }
+    });
+
     socket.on("voteAdd", async (retroId: string, groupId: string, email: string) => {
       const retro = await getFullRetro(retroId);
       if (retro) {
@@ -222,10 +239,10 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("removeActionItem", async (retroId: string, actionItemId: string) => {
+    socket.on("removeActionItem", async (retroId: string, actionItemId: number) => {
       const retro = await getFullRetro(retroId);
       const actionItemIndex = retro?.actionItems.findIndex(item => item.id === actionItemId);
-      if (retro && actionItemIndex && actionItemIndex !== -1) {
+      if (retro && actionItemIndex !== undefined && actionItemIndex !== -1) {
         await deleteActionItem(actionItemId);
         retro.actionItems.splice(actionItemIndex, 1);
         socket.emit("retroUpdated", retro, retroId);
@@ -233,7 +250,7 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("updateActionItem", async (retroId: string, actionItemId: string, newAssignee: User | "unassigned", newName: string) => {
+    socket.on("updateActionItem", async (retroId: string, actionItemId: number, newAssignee: User | "unassigned", newName: string) => {
       const retro = await getFullRetro(retroId);
       const actionItem = retro?.actionItems.find(item => item.id === actionItemId);
       if (retro && actionItem) {
@@ -245,7 +262,7 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("updateActionAuthor", async (retroId: string, actionItemId: string, newAuthor: User | "unauthored") => {
+    socket.on("updateActionAuthor", async (retroId: string, actionItemId: number, newAuthor: User | "unauthored") => {
       const retro = await getFullRetro(retroId);
       const actionItem = retro?.actionItems.find(item => item.id === actionItemId);
       if (retro && actionItem) {

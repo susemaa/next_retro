@@ -49,14 +49,15 @@ interface RetroContextType {
   initPositions: (retroId: string, ideas: Idea[], callback: InitPositionsCallback) => void;
   initGroups: (retroId: string, groups: Record<string, string[]>, callback: InitGroupsCallback) => void;
   updateGroupName: (retroId: string, groupId: string, newName: string) => void;
+  changeIdeaGroup: (retroId: string, ideaId: string, newGroupId: string) => void;
   updatePosition: (retroId: string, ideaId: string, newPosition: { x: number; y : number }) => void;
   updatePositions: (retroId: string, positions: Record<string, { x: number; y: number }>) => void;
   voteAdd: (retroId: string, groupId: string, email: string) => void;
   voteSubstract: (retroId: string, groupId: string, email: string) => void;
   sendActionItem: (retroId: string, author: User, assignee: User, item: string) => void;
-  removeActionItem: (retroId: string, itemId: string) => void;
-  updateActionItem: (retroId: string, actionItemId: string, newAssignee: User | "unassigned", newName: string) => void;
-  updateActionAuthor: (retroId: string, actionItemId: string, newAuthor: User | "unauthored") => void;
+  removeActionItem: (retroId: string, itemId: number) => void;
+  updateActionItem: (retroId: string, actionItemId: number, newAssignee: User | "unassigned", newName: string) => void;
+  updateActionAuthor: (retroId: string, actionItemId: number, newAuthor: User | "unauthored") => void;
   changeRetroStage: (
     retroId: string,
     stage: Stage,
@@ -164,6 +165,10 @@ export const RetroProvider = ({
     socket.emit("updateGroupName", retroId, groupId, newName);
   };
 
+  const changeIdeaGroup = (retroId: string, ideaId: string, newGroupId: string) => {
+    socket.emit("changeIdeaGroup", retroId, ideaId, newGroupId);
+  };
+
   const voteAdd = (retroId: string, groupId: string, email: string) => {
     socket.emit("voteAdd", retroId, groupId, email);
   };
@@ -176,15 +181,15 @@ export const RetroProvider = ({
     socket.emit("sendActionItem", retroId, author, assignee, item);
   };
 
-  const removeActionItem = (retroId: string, actionItemId: string) => {
+  const removeActionItem = (retroId: string, actionItemId: number) => {
     socket.emit("removeActionItem", retroId, actionItemId);
   };
 
-  const updateActionItem = (retroId: string, actionItemId: string, newAssignee: User | "unassigned", newName: string) => {
+  const updateActionItem = (retroId: string, actionItemId: number, newAssignee: User | "unassigned", newName: string) => {
     socket.emit("updateActionItem", retroId, actionItemId, newAssignee, newName);
   };
 
-  const updateActionAuthor = (retroId: string, actionItemId: string, newAuthor: User | "unauthored") => {
+  const updateActionAuthor = (retroId: string, actionItemId: number, newAuthor: User | "unauthored") => {
     socket.emit("updateActionAuthor", retroId, actionItemId, newAuthor);
   };
 
@@ -226,6 +231,7 @@ export const RetroProvider = ({
       updatePositions,
       initGroups,
       updateGroupName,
+      changeIdeaGroup,
       voteAdd,
       voteSubstract,
       sendActionItem,

@@ -211,13 +211,13 @@ export async function addActionItem(retroUId: string, name: string, authorEmail:
   });
 }
 
-export async function deleteActionItem(itemId: string) {
+export async function deleteActionItem(itemId: number) {
   return await prisma.actionItem.delete({
     where: { id: itemId },
   });
 }
 
-export async function updateActionItem(itemId: string, newActionItem: ActionItem) {
+export async function updateActionItem(itemId: number, newActionItem: ActionItem) {
   return await prisma.actionItem.update({
     where: { id: itemId },
     data: newActionItem,
