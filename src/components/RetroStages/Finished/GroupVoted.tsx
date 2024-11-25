@@ -1,3 +1,4 @@
+"use client";
 import { memo, useState, useEffect } from "react";
 import { useRetroContext } from "@/contexts/RetroContext";
 import { IdeaType, mapRetroType } from "@/app/api/storage/storageHelpers";

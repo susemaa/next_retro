@@ -1,14 +1,13 @@
+version: '3.8'
 services:
   app:
-    build: .
-    #image: next_retro
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
-    #environment:
-    #  - NODE_ENV=development
-    #  - DATABASE_URL="postgresql://myuser:mypassword@db:5432/myapp?schema=public"
     env_file:
-     - .env
+      - .env
     volumes:
       - .:/app
       - /app/node_modules

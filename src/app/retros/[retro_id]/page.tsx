@@ -15,7 +15,9 @@ import { useEffect, useState } from "react";
 
 export default function RetroPage({ params }: { params: { retro_id: string } }) {
   const { retros, isLoading, updStorage, sendUserData } = useRetroContext();
-  const { data } = useSession();
+  const { data, update } = useSession({
+    required: true,
+  });
   const [retroData, setRetroData] = useState(retros[params.retro_id]);
 
   useEffect(() => {
@@ -31,7 +33,8 @@ export default function RetroPage({ params }: { params: { retro_id: string } }) 
   }, [data?.user, params.retro_id]);
 
   if (!retroData || !data?.user) {
-    const timer = setInterval(() => {
+    const timer = setInterval(async () => {
+      await update();
       if (isLoading && data?.user?.email) {
         updStorage(data?.user.email);
         clearInterval(timer);
