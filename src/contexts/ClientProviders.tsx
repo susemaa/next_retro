@@ -22,10 +22,6 @@ const ClientProviders: React.FC<ClientProvidersProps> = ({ children }) => {
     fetchSession();
   }, []);
 
-  if (!session) {
-    return <div>Loading...</div>; // Optionally, add a loading state
-  }
-
   return (
     <SessionProviderWrapper session={session}>
       <RetroProvider initialRetros={{}}>
