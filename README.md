@@ -2,6 +2,8 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
+**Option 1: Local Installation**
+
 #### PostgreSQL
 
 - Install [Homebrew](http://brew.sh/)
@@ -82,6 +84,23 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+**Option 2: Using Docker**
+- Install [Docker](https://docs.docker.com/get-docker/)
+- Run the application using Docker Compose:
+
+For development environment:
+
+```bash
+docker-compose -f docker-compose.dev.yaml up --build
+```
+
+
+For production environment:
+
+```bash
+docker-compose -f docker-compose.yaml up --build
+```
 
 ## Database Backup and Restore
 
