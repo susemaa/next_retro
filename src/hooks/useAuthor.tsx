@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useActualSession } from "./useActualSession";
 
 const useAuthor = (createdBy: string) => {
-  const { data } = useSession();
+  const { data } = useActualSession();
   const [isAuthor, setIsAuthor] = useState(createdBy === data?.user?.email);
 
   useEffect(() => {

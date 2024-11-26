@@ -1,7 +1,7 @@
 import { memo, useState, useRef, useEffect } from "react";
 import { useRetroContext } from "@/contexts/RetroContext";
-import { useSession } from "next-auth/react";
 import { IdeaType, mapRetroType } from "@/app/api/storage/storageHelpers";
+import { useActualSession } from "@/hooks/useActualSession";
 
 interface GroupVoting {
   retroId: string;
@@ -13,7 +13,7 @@ interface GroupVoting {
 
 const GroupVoting: React.FC<GroupVoting> = ({ retroId, groupId, name, userVotes, ideaIds }) => {
   const { retros, voteAdd, voteSubstract, getGroup } = useRetroContext();
-  const { data } = useSession();
+  const { data } = useActualSession();
   const [groupVotes, setGroupVotes] = useState(
     getGroup(retroId, groupId)?.votes.filter(email => email === data?.user?.email || "")
   );

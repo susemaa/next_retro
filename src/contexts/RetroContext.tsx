@@ -1,7 +1,6 @@
 "use client";
 import { createContext, useContext, useState, ReactNode, useEffect, SetStateAction, Dispatch } from "react";
 import { getSocket } from "@/socket";
-import { useSession } from "next-auth/react";
 import { Retro, User, Stage, Group, Idea } from "@prisma/client";
 import { FullRetro } from "@/app/api/storage/storage";
 import { IdeaType } from "@/app/api/storage/storageHelpers";
@@ -25,7 +24,7 @@ export type GetRetroCallback = (
 ) => void;
 
 export type ChangeRetroStateCallback = (
-  data: { status: 200, retro: FullRetro} | errResponse
+  data: { status: 200, retro: FullRetro } | errResponse
 ) => void;
 
 export type InitPositionsCallback = (
@@ -50,7 +49,7 @@ interface RetroContextType {
   initGroups: (retroId: string, groups: Record<string, string[]>, callback: InitGroupsCallback) => void;
   updateGroupName: (retroId: string, groupId: string, newName: string) => void;
   changeIdeaGroup: (retroId: string, ideaId: string, newGroupId: string) => void;
-  updatePosition: (retroId: string, ideaId: string, newPosition: { x: number; y : number }) => void;
+  updatePosition: (retroId: string, ideaId: string, newPosition: { x: number; y: number }) => void;
   updatePositions: (retroId: string, positions: Record<string, { x: number; y: number }>) => void;
   voteAdd: (retroId: string, groupId: string, email: string) => void;
   voteSubstract: (retroId: string, groupId: string, email: string) => void;
@@ -149,7 +148,7 @@ export const RetroProvider = ({
     socket.emit("initPositions", retroId, ideas, callback);
   };
 
-  const updatePosition = (retroId: string, ideaId: string, newPosition: { x: number; y : number }) => {
+  const updatePosition = (retroId: string, ideaId: string, newPosition: { x: number; y: number }) => {
     socket.emit("updatePosition", retroId, ideaId, newPosition);
   };
 

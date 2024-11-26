@@ -1,6 +1,5 @@
 "use client";
 import React, { memo, useState, useRef, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { notify } from "@/helpers";
 import { useRetroContext } from "@/contexts/RetroContext";
 import { ConfirmModal, WelcomeModal } from "@/components/Modals";
@@ -8,6 +7,7 @@ import useAuthor from "@/hooks/useAuthor";
 import { GroupVoted } from "../Finished";
 import FooterWInput from "../../FooterWInput";
 import ActionItem from "./ActionItem";
+import { useActualSession } from "@/hooks/useActualSession";
 
 
 interface ActionItems {
@@ -16,7 +16,7 @@ interface ActionItems {
 }
 
 const ActionItems: React.FC<ActionItems> = ({ id, createdBy }) => {
-  const { data } = useSession();
+  const { data } = useActualSession();
   const isAuthor = useAuthor(createdBy);
   const [loading, setLoading] = useState(false);
   const { changeRetroStage, retros, sendActionItem, getGroup } = useRetroContext();

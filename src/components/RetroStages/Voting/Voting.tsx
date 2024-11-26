@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, memo, useState, useRef } from "react";
-import { useSession } from "next-auth/react";
 import { useRetroContext } from "@/contexts/RetroContext";
 import ConfirmModal from "../../Modals/ConfirmModal";
 import { notify, openModal } from "@/helpers";
@@ -9,6 +8,7 @@ import useAuthor from "@/hooks/useAuthor";
 import Footer from "../../Footer";
 import GroupVoting from "./GroupVoting";
 import { User } from "@prisma/client";
+import { useActualSession } from "@/hooks/useActualSession";
 
 interface Voting {
   id: string;
@@ -16,7 +16,7 @@ interface Voting {
 }
 
 const Voting: React.FC<Voting> = ({ id, createdBy }) => {
-  const { data } = useSession();
+  const { data } = useActualSession();
   const isAuthor = useAuthor(createdBy);
   const [loading, setLoading] = useState(false);
   const { changeRetroStage, retros } = useRetroContext();

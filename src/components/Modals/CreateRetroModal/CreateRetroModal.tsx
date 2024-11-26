@@ -1,12 +1,12 @@
 "use client";
 import { memo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Card from "./Card";
 import { useRetroContext } from "@/contexts/RetroContext";
 import { notify } from "@/helpers";
 import { RetroType } from "@prisma/client";
+import { useActualSession } from "@/hooks/useActualSession";
 
 interface ModalProps {
   title: string;
@@ -16,7 +16,7 @@ const CreateRetroModal: React.FC<ModalProps> = ({ title }) => {
   const [loading, setLoading] = useState<string | null>(null);
   const [counter, setCounter] = useState(3);
   const checkboxRef = useRef<HTMLInputElement>(null);
-  const { data } = useSession();
+  const { data } = useActualSession();
   const { updStorage } = useRetroContext();
   const router = useRouter();
 
