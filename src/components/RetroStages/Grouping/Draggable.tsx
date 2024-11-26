@@ -78,7 +78,8 @@ const Draggable: React.FC<DraggableProps> = ({
         transform: `scale(${scale.x}, ${scale.y})`,
         pointerEvents: isDragging ? "none" : "auto",
         touchAction: "none",
-        borderColor: `${groupNumber === -1 ? "white" : colors[groupNumber % colors.length]}`,
+        backgroundColor: "white",
+        borderColor: `${groupNumber === -1 ? "black" : colors[groupNumber % colors.length]}`,
       }}
       onMouseDown={stopPropagationWrapper(onMouseDown)}
       onMouseUp={stopPropagationWrapper(onMouseUp)}
